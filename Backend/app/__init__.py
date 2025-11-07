@@ -4,4 +4,3 @@ Open-source agentic platform for climate-adaptive irrigation and wildfire manage
 """
 
 __version__ = "0.1.0"
-

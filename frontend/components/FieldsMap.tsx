@@ -1,4 +1,12 @@
-import { useState } from "react";
+/**
+ * FieldsMap component displays an interactive map of farm fields.
+ *
+ * Shows field boundaries, sensor data, NDVI, fire risk zones, and PSPS overlays.
+ *
+ * @component
+ * @returns {JSX.Element} The fields map view
+ */
+import { useState, useCallback } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -7,8 +15,21 @@ import { Label } from "./ui/label";
 import { MapPin, Droplet, Thermometer, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 
-export function FieldsMap() {
-  const [layers, setLayers] = useState({
+interface LayerState {
+  /** Show satellite imagery layer */
+  satellite: boolean;
+  /** Show sensor locations layer */
+  sensors: boolean;
+  /** Show NDVI layer */
+  ndvi: boolean;
+  /** Show fire risk zones layer */
+  fireRisk: boolean;
+  /** Show PSPS zones layer */
+  psps: boolean;
+}
+
+export function FieldsMap(): JSX.Element {
+  const [layers, setLayers] = useState<LayerState>({
     satellite: true,
     sensors: true,
     ndvi: false,
@@ -54,10 +75,7 @@ export function FieldsMap() {
             >
               <div className="bg-white rounded-lg shadow-lg">
                 <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between p-4"
-                  >
+                  <Button variant="ghost" className="w-full justify-between p-4">
                     <span>Map Layers</span>
                     {layersOpen ? (
                       <ChevronUp className="h-4 w-4" />
@@ -71,9 +89,7 @@ export function FieldsMap() {
                     <Switch
                       id="satellite"
                       checked={layers.satellite}
-                      onCheckedChange={(checked) =>
-                        setLayers({ ...layers, satellite: checked })
-                      }
+                      onCheckedChange={(checked) => setLayers({ ...layers, satellite: checked })}
                     />
                     <Label htmlFor="satellite">Satellite Imagery</Label>
                   </div>
@@ -81,9 +97,7 @@ export function FieldsMap() {
                     <Switch
                       id="sensors"
                       checked={layers.sensors}
-                      onCheckedChange={(checked) =>
-                        setLayers({ ...layers, sensors: checked })
-                      }
+                      onCheckedChange={(checked) => setLayers({ ...layers, sensors: checked })}
                     />
                     <Label htmlFor="sensors">Sensors</Label>
                   </div>
@@ -91,9 +105,7 @@ export function FieldsMap() {
                     <Switch
                       id="ndvi"
                       checked={layers.ndvi}
-                      onCheckedChange={(checked) =>
-                        setLayers({ ...layers, ndvi: checked })
-                      }
+                      onCheckedChange={(checked) => setLayers({ ...layers, ndvi: checked })}
                     />
                     <Label htmlFor="ndvi">NDVI Heatmap</Label>
                   </div>
@@ -101,9 +113,7 @@ export function FieldsMap() {
                     <Switch
                       id="fireRisk"
                       checked={layers.fireRisk}
-                      onCheckedChange={(checked) =>
-                        setLayers({ ...layers, fireRisk: checked })
-                      }
+                      onCheckedChange={(checked) => setLayers({ ...layers, fireRisk: checked })}
                     />
                     <Label htmlFor="fireRisk">Fire Risk Zones</Label>
                   </div>
@@ -111,9 +121,7 @@ export function FieldsMap() {
                     <Switch
                       id="psps"
                       checked={layers.psps}
-                      onCheckedChange={(checked) =>
-                        setLayers({ ...layers, psps: checked })
-                      }
+                      onCheckedChange={(checked) => setLayers({ ...layers, psps: checked })}
                     />
                     <Label htmlFor="psps">PSPS Areas</Label>
                   </div>
@@ -158,7 +166,7 @@ export function FieldsMap() {
         <div className="space-y-6">
           <Card className="p-6">
             <h3 className="mb-4">{selectedField.name}</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <p className="text-slate-600 mb-1">Crop Type</p>

@@ -1,22 +1,27 @@
-import { useState } from "react";
+/**
+ * Alerts component displays and manages all farm alerts.
+ *
+ * Provides filtering, sorting, and dismissal functionality for alerts.
+ *
+ * @component
+ * @param {AlertsProps} props - Component props
+ * @returns {JSX.Element} The alerts management view
+ */
+import { useState, useCallback } from "react";
 import { AlertCard } from "./AlertCard";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { toast } from "sonner";
+import type { AlertSeverity } from "../lib/types";
 
 interface AlertsProps {
+  /** Optional callback when an alert is dismissed */
   onDismissAlert?: () => void;
 }
 
-export function Alerts({ onDismissAlert }: AlertsProps) {
-  const [filter, setFilter] = useState("all");
+export function Alerts({ onDismissAlert }: AlertsProps): JSX.Element {
+  const [filter, setFilter] = useState<"all" | AlertSeverity>("all");
   const [dismissedAlerts, setDismissedAlerts] = useState<number[]>([]);
 
   const alerts = [
@@ -24,7 +29,8 @@ export function Alerts({ onDismissAlert }: AlertsProps) {
       id: 1,
       severity: "critical" as const,
       title: "Irrigation Needed",
-      description: "Field 1: Soil moisture <40%, fire risk high. Recommend immediate pre-PSPS watering.",
+      description:
+        "Field 1: Soil moisture <40%, fire risk high. Recommend immediate pre-PSPS watering.",
       time: "2 hours ago",
       fields: ["Field 1", "Field 3"],
     },
@@ -39,7 +45,8 @@ export function Alerts({ onDismissAlert }: AlertsProps) {
       id: 3,
       severity: "warning" as const,
       title: "Frost Risk Alert",
-      description: "Climate Agent: 78% confidence frost in next 48h. Recommend frost cloth deployment.",
+      description:
+        "Climate Agent: 78% confidence frost in next 48h. Recommend frost cloth deployment.",
       time: "4 hours ago",
       fields: ["Field 2"],
     },
@@ -69,7 +76,8 @@ export function Alerts({ onDismissAlert }: AlertsProps) {
       id: 7,
       severity: "warning" as const,
       title: "Sensor Maintenance Required",
-      description: "Soil moisture sensor #3 in Field 1 showing erratic readings. Schedule maintenance.",
+      description:
+        "Soil moisture sensor #3 in Field 1 showing erratic readings. Schedule maintenance.",
       time: "1 day ago",
       fields: ["Field 1"],
     },
@@ -77,7 +85,8 @@ export function Alerts({ onDismissAlert }: AlertsProps) {
       id: 8,
       severity: "info" as const,
       title: "Weather Update",
-      description: "No precipitation expected for next 7 days. Continue current irrigation schedule.",
+      description:
+        "No precipitation expected for next 7 days. Continue current irrigation schedule.",
       time: "1 day ago",
     },
   ];
@@ -95,7 +104,7 @@ export function Alerts({ onDismissAlert }: AlertsProps) {
   };
 
   const activeAlerts = alerts.filter((alert) => !dismissedAlerts.includes(alert.id));
-  
+
   const filteredAlerts = activeAlerts.filter((alert) => {
     if (filter === "all") return true;
     return alert.severity === filter;
@@ -109,11 +118,7 @@ export function Alerts({ onDismissAlert }: AlertsProps) {
           <h2>Alerts & Notifications</h2>
           <p className="text-slate-600">Manage all farm alerts and recommendations</p>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={handleMarkAllRead}
-          disabled={activeAlerts.length === 0}
-        >
+        <Button variant="outline" onClick={handleMarkAllRead} disabled={activeAlerts.length === 0}>
           Mark All as Read
         </Button>
       </div>

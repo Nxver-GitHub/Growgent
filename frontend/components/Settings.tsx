@@ -1,4 +1,12 @@
-import { useState } from "react";
+/**
+ * Settings component provides application configuration options.
+ *
+ * Allows users to configure notifications, preferences, and farm settings.
+ *
+ * @component
+ * @returns {JSX.Element} The settings view
+ */
+import { useState, useCallback } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -8,25 +16,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
-export function Settings() {
-  const [notifications, setNotifications] = useState({
+interface NotificationSettings {
+  /** Enable in-app notifications */
+  inApp: boolean;
+  /** Enable email notifications */
+  email: boolean;
+  /** Enable SMS notifications */
+  sms: boolean;
+  /** Enable push notifications */
+  push: boolean;
+}
+
+export function Settings(): JSX.Element {
+  const [notifications, setNotifications] = useState<NotificationSettings>({
     inApp: true,
     email: true,
     sms: false,
     push: true,
   });
 
-  const handleSave = () => {
+  /**
+   * Handles saving settings and shows success notification.
+   */
+  const handleSave = useCallback((): void => {
     toast.success("Settings saved successfully");
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -55,7 +71,12 @@ export function Settings() {
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="john@sunnydalefarm.com" className="mt-2" />
+                  <Input
+                    id="email"
+                    type="email"
+                    defaultValue="john@sunnydalefarm.com"
+                    className="mt-2"
+                  />
                 </div>
               </div>
 
@@ -128,7 +149,9 @@ export function Settings() {
                   <Badge variant="outline">Strawberry</Badge>
                   <Badge variant="outline">Lettuce</Badge>
                   <Badge variant="outline">Tomato</Badge>
-                  <Button variant="ghost" size="sm">+ Add Crop</Button>
+                  <Button variant="ghost" size="sm">
+                    + Add Crop
+                  </Button>
                 </div>
               </div>
 
@@ -265,8 +288,8 @@ export function Settings() {
                 <Label>Description</Label>
                 <p className="text-slate-700 mt-1">
                   Growgent is an open-source agentic platform for fire-adaptive irrigation
-                  management. Built to solve California agriculture's critical challenges
-                  during drought and wildfire seasons.
+                  management. Built to solve California agriculture's critical challenges during
+                  drought and wildfire seasons.
                 </p>
               </div>
 
@@ -300,9 +323,9 @@ export function Settings() {
 
               <div className="p-4 bg-slate-50 rounded-lg">
                 <p className="text-slate-700">
-                  <strong>Note:</strong> Growgent is not designed for collecting PII or
-                  securing sensitive data. Please consult your legal and security teams
-                  before deploying in production.
+                  <strong>Note:</strong> Growgent is not designed for collecting PII or securing
+                  sensitive data. Please consult your legal and security teams before deploying in
+                  production.
                 </p>
               </div>
             </div>

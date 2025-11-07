@@ -1,27 +1,22 @@
-import { useState } from "react";
+/**
+ * WaterMetrics component displays detailed water usage metrics and analytics.
+ *
+ * Shows water savings, usage trends, and detailed breakdowns by field and time period.
+ *
+ * @component
+ * @returns {JSX.Element} The water metrics view
+ */
+import { useState, useCallback } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { MetricWidget } from "./MetricWidget";
 import { Download, FileText, Mail, ChevronDown, ChevronUp } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "./ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { toast } from "sonner";
 
-export function WaterMetrics() {
+export function WaterMetrics(): JSX.Element {
   const [chartsExpanded, setChartsExpanded] = useState(true);
   const [tableExpanded, setTableExpanded] = useState(true);
   const heroMetrics = [
@@ -87,24 +82,24 @@ export function WaterMetrics() {
       <div className="flex items-center justify-between">
         <h2>Water & Fire Metrics Dashboard</h2>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => toast.success("PDF report generated. Check your downloads.")}
           >
             <Download className="h-4 w-4 mr-2" />
             PDF Report
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => toast.success("CSV file exported successfully.")}
           >
             <FileText className="h-4 w-4 mr-2" />
             CSV Export
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => toast.success("Report emailed to john@sunnydalefarm.com")}
           >
@@ -116,7 +111,7 @@ export function WaterMetrics() {
 
       {/* Date Range Selector */}
       <div className="flex gap-2">
-        <Select 
+        <Select
           defaultValue="30-days"
           onValueChange={(value) => toast.info(`Viewing data for: ${value}`)}
         >
@@ -154,50 +149,44 @@ export function WaterMetrics() {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h3 className="mb-4">Water Use Over Time</h3>
-          <div className="h-64 bg-gradient-to-br from-emerald-50 to-blue-50 rounded-lg flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <p className="text-slate-600">Area Chart</p>
-              <p className="text-slate-500">
-                6-month water usage trend (Recharts integration)
-              </p>
-            </div>
-          </div>
-        </Card>
+              <Card className="p-6">
+                <h3 className="mb-4">Water Use Over Time</h3>
+                <div className="h-64 bg-gradient-to-br from-emerald-50 to-blue-50 rounded-lg flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <p className="text-slate-600">Area Chart</p>
+                    <p className="text-slate-500">
+                      6-month water usage trend (Recharts integration)
+                    </p>
+                  </div>
+                </div>
+              </Card>
 
-        <Card className="p-6">
-          <h3 className="mb-4">Fire Risk Trajectory</h3>
-          <div className="h-64 bg-gradient-to-br from-red-50 to-green-50 rounded-lg flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <p className="text-slate-600">Line Chart</p>
-              <p className="text-slate-500">
-                Fire risk levels over 6 months
-              </p>
-            </div>
-          </div>
-        </Card>
+              <Card className="p-6">
+                <h3 className="mb-4">Fire Risk Trajectory</h3>
+                <div className="h-64 bg-gradient-to-br from-red-50 to-green-50 rounded-lg flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <p className="text-slate-600">Line Chart</p>
+                    <p className="text-slate-500">Fire risk levels over 6 months</p>
+                  </div>
+                </div>
+              </Card>
 
-        <Card className="p-6">
-          <h3 className="mb-4">Crop Health (NDVI) Trend</h3>
-          <div className="h-64 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <p className="text-slate-600">Area Chart</p>
-              <p className="text-slate-500">
-                NDVI values (0-1 scale)
-              </p>
-            </div>
-          </div>
-        </Card>
+              <Card className="p-6">
+                <h3 className="mb-4">Crop Health (NDVI) Trend</h3>
+                <div className="h-64 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <p className="text-slate-600">Area Chart</p>
+                    <p className="text-slate-500">NDVI values (0-1 scale)</p>
+                  </div>
+                </div>
+              </Card>
 
               <Card className="p-6">
                 <h3 className="mb-4">Drought Stress Index</h3>
                 <div className="h-64 bg-gradient-to-br from-yellow-50 to-red-50 rounded-lg flex items-center justify-center">
                   <div className="text-center space-y-2">
                     <p className="text-slate-600">Bar Chart</p>
-                    <p className="text-slate-500">
-                      Weekly drought stress levels
-                    </p>
+                    <p className="text-slate-500">Weekly drought stress levels</p>
                   </div>
                 </div>
               </Card>
@@ -221,31 +210,31 @@ export function WaterMetrics() {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Agent</TableHead>
-              <TableHead className="text-right">Recs Sent</TableHead>
-              <TableHead className="text-right">Accepted</TableHead>
-              <TableHead className="text-right">Accept Rate</TableHead>
-              <TableHead className="text-right">Positive Outcomes</TableHead>
-              <TableHead className="text-right">Outcome Rate</TableHead>
-              <TableHead className="text-right">Avg Confidence</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {agentPerformance.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell>{row.agent}</TableCell>
-                <TableCell className="text-right">{row.recsSent}</TableCell>
-                <TableCell className="text-right">{row.accepted}</TableCell>
-                <TableCell className="text-right text-emerald-600">{row.acceptRate}</TableCell>
-                <TableCell className="text-right">{row.positiveOutcomes}</TableCell>
-                <TableCell className="text-right text-emerald-600">{row.outcomeRate}</TableCell>
-                <TableCell className="text-right">{row.avgConfidence}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Agent</TableHead>
+                  <TableHead className="text-right">Recs Sent</TableHead>
+                  <TableHead className="text-right">Accepted</TableHead>
+                  <TableHead className="text-right">Accept Rate</TableHead>
+                  <TableHead className="text-right">Positive Outcomes</TableHead>
+                  <TableHead className="text-right">Outcome Rate</TableHead>
+                  <TableHead className="text-right">Avg Confidence</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {agentPerformance.map((row, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{row.agent}</TableCell>
+                    <TableCell className="text-right">{row.recsSent}</TableCell>
+                    <TableCell className="text-right">{row.accepted}</TableCell>
+                    <TableCell className="text-right text-emerald-600">{row.acceptRate}</TableCell>
+                    <TableCell className="text-right">{row.positiveOutcomes}</TableCell>
+                    <TableCell className="text-right text-emerald-600">{row.outcomeRate}</TableCell>
+                    <TableCell className="text-right">{row.avgConfidence}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CollapsibleContent>
         </Card>
       </Collapsible>

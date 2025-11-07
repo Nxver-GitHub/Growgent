@@ -1,15 +1,32 @@
+/**
+ * AgentStatusCard component displays the status and metrics for an agent.
+ *
+ * Shows agent icon, status indicator, current metric, alert count, and last update time.
+ * Provides click interaction for viewing agent details.
+ *
+ * @component
+ * @param {AgentStatusCardProps} props - Component props
+ * @returns {JSX.Element} The agent status card
+ */
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { LucideIcon } from "lucide-react";
 
 interface AgentStatusCardProps {
+  /** Lucide icon component to display for the agent */
   icon: LucideIcon;
+  /** Title/name of the agent */
   title: string;
+  /** Current status of the agent */
   status: "active" | "warning" | "error";
+  /** Current metric value to display */
   metric: string;
+  /** Optional count of active alerts */
   alertCount?: number;
+  /** Timestamp of last update */
   lastUpdate: string;
+  /** Optional click handler for card interaction */
   onClick?: () => void;
 }
 
@@ -21,8 +38,8 @@ export function AgentStatusCard({
   alertCount,
   lastUpdate,
   onClick,
-}: AgentStatusCardProps) {
-  const statusColors = {
+}: AgentStatusCardProps): JSX.Element {
+  const statusColors: Record<"active" | "warning" | "error", string> = {
     active: "bg-green-500",
     warning: "bg-amber-500",
     error: "bg-red-500",
@@ -46,11 +63,11 @@ export function AgentStatusCard({
           </Badge>
         )}
       </div>
-      
+
       <h3 className="mb-2">{title}</h3>
-      
+
       <p className="text-slate-600 mb-4">{metric}</p>
-      
+
       <div className="flex items-center justify-between">
         <span className="text-slate-500">{lastUpdate}</span>
         <Button variant="ghost" size="sm" className="text-emerald-600">

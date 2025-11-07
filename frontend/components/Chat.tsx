@@ -1,4 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+/**
+ * Chat component provides an interface for interacting with farm agents.
+ *
+ * Allows users to ask questions and receive recommendations from AI agents.
+ *
+ * @component
+ * @returns {JSX.Element} The chat interface
+ */
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -19,14 +27,19 @@ import {
 import { toast } from "sonner";
 
 interface Message {
+  /** Unique message identifier */
   id: number;
+  /** Sender of the message */
   sender: "user" | "bot";
+  /** Message content */
   content: string;
+  /** Timestamp of the message */
   timestamp: string;
+  /** Optional action buttons for the message */
   actions?: { label: string; onClick: () => void }[];
 }
 
-export function Chat() {
+export function Chat(): JSX.Element {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -44,7 +57,8 @@ export function Chat() {
     {
       id: 3,
       sender: "bot",
-      content: "Based on current forecast and soil data, YES. I recommend: Irrigate Field 1 for 2 hours starting at 06:00 AM. Soil moisture 35%, drought risk high, fire risk low. This will save water vs. typical scheduling.",
+      content:
+        "Based on current forecast and soil data, YES. I recommend: Irrigate Field 1 for 2 hours starting at 06:00 AM. Soil moisture 35%, drought risk high, fire risk low. This will save water vs. typical scheduling.",
       timestamp: "10:01 AM",
       actions: [
         { label: "View Schedule", onClick: () => console.log("View schedule") },
@@ -60,7 +74,8 @@ export function Chat() {
     {
       id: 5,
       sender: "bot",
-      content: "Field 3 crop health at 78% NDVI. Recommend fungicide spray Thursday. Current moisture levels are adequate, no immediate irrigation needed.",
+      content:
+        "Field 3 crop health at 78% NDVI. Recommend fungicide spray Thursday. Current moisture levels are adequate, no immediate irrigation needed.",
       timestamp: "10:02 AM",
       actions: [
         { label: "View Heatmap", onClick: () => console.log("View heatmap") },
@@ -98,7 +113,8 @@ export function Chat() {
       const botMessage: Message = {
         id: messages.length + 2,
         sender: "bot",
-        content: "I'm analyzing your request. This is a demo response showing how the chat interface works.",
+        content:
+          "I'm analyzing your request. This is a demo response showing how the chat interface works.",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, botMessage]);
@@ -143,7 +159,8 @@ export function Chat() {
             <AlertDialogHeader>
               <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete all messages in this conversation. This action cannot be undone.
+                This will permanently delete all messages in this conversation. This action cannot
+                be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -172,7 +189,7 @@ export function Chat() {
                     } rounded-lg p-4`}
                   >
                     <p className="mb-2">{message.content}</p>
-                    
+
                     {message.actions && (
                       <div className="flex flex-wrap gap-2 mt-3">
                         {message.actions.map((action, idx) => (
@@ -187,7 +204,7 @@ export function Chat() {
                         ))}
                       </div>
                     )}
-                    
+
                     <p
                       className={`text-xs mt-2 ${
                         message.sender === "user" ? "text-emerald-100" : "text-slate-500"
@@ -203,8 +220,14 @@ export function Chat() {
                   <div className="bg-slate-100 text-slate-900 rounded-lg p-4">
                     <div className="flex gap-1">
                       <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }} />
+                      <div
+                        className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      />
+                      <div
+                        className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.4s" }}
+                      />
                     </div>
                   </div>
                 </div>

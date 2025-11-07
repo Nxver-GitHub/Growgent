@@ -1,3 +1,12 @@
+/**
+ * RecommendationModal component displays detailed agent recommendations.
+ *
+ * Shows recommendation details, confidence score, and allows accepting or dismissing.
+ *
+ * @component
+ * @param {RecommendationModalProps} props - Component props
+ * @returns {JSX.Element} The recommendation modal dialog
+ */
 import {
   Dialog,
   DialogContent,
@@ -10,28 +19,22 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
 import { toast } from "sonner";
+import type { Recommendation } from "../lib/types";
 
 interface RecommendationModalProps {
+  /** Whether the modal is open */
   open: boolean;
+  /** Callback to close the modal */
   onClose: () => void;
-  recommendation?: {
-    agent: string;
-    title: string;
-    confidence: number;
-    reason: string;
-    fields: string[];
-    duration?: string;
-    waterVolume?: string;
-    fireRiskImpact?: string;
-    waterSaved?: string;
-  };
+  /** Optional recommendation data to display */
+  recommendation?: Recommendation | null;
 }
 
 export function RecommendationModal({
   open,
   onClose,
   recommendation,
-}: RecommendationModalProps) {
+}: RecommendationModalProps): JSX.Element | null {
   const handleAccept = () => {
     toast.success("Recommendation accepted and scheduled");
     onClose();
@@ -49,9 +52,7 @@ export function RecommendationModal({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{recommendation.title}</DialogTitle>
-          <DialogDescription>
-            Recommended by {recommendation.agent}
-          </DialogDescription>
+          <DialogDescription>Recommended by {recommendation.agent}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">

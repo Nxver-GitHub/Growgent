@@ -1,15 +1,17 @@
-import { useState } from "react";
+/**
+ * IrrigationSchedule component displays and manages irrigation scheduling.
+ *
+ * Shows calendar view of scheduled irrigation events with filtering and editing capabilities.
+ *
+ * @component
+ * @returns {JSX.Element} The irrigation schedule view
+ */
+import { useState, useCallback } from "react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Calendar, ChevronLeft, ChevronRight, Download, X } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import {
   Dialog,
   DialogContent,
@@ -20,11 +22,24 @@ import {
 } from "./ui/dialog";
 import { toast } from "sonner";
 
-export function IrrigationSchedule() {
+interface IrrigationEvent {
+  /** Field name where irrigation occurs */
+  field: string;
+  /** Time of irrigation */
+  time: string;
+  /** Type of irrigation event */
+  type: "scheduled" | "recommended" | "completed";
+  /** Optional duration */
+  duration?: string;
+  /** Optional water volume */
+  waterVolume?: string;
+}
+
+export function IrrigationSchedule(): JSX.Element {
   const [view, setView] = useState<"week" | "month">("week");
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<IrrigationEvent | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  
+
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const currentWeek = [
     { date: 4, events: [{ field: "Field 1", time: "06:00", type: "recommended" }] },
@@ -49,16 +64,16 @@ export function IrrigationSchedule() {
       <div className="flex items-center justify-between">
         <h2>Irrigation Schedule & Planning</h2>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => toast.success("PDF export started. Check your downloads.")}
           >
             <Download className="h-4 w-4 mr-2" />
             Export as PDF
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => toast.success("Calendar file downloaded. Import to your calendar app.")}
           >
@@ -71,10 +86,7 @@ export function IrrigationSchedule() {
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex gap-2">
-          <Button
-            variant={view === "week" ? "default" : "outline"}
-            onClick={() => setView("week")}
-          >
+          <Button variant={view === "week" ? "default" : "outline"} onClick={() => setView("week")}>
             Week
           </Button>
           <Button
@@ -85,10 +97,7 @@ export function IrrigationSchedule() {
           </Button>
         </div>
 
-        <Button
-          variant="outline"
-          onClick={() => setShowFilters(!showFilters)}
-        >
+        <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
           {showFilters ? "Hide" : "Show"} Filters
         </Button>
       </div>
@@ -98,11 +107,7 @@ export function IrrigationSchedule() {
         <Card className="p-4">
           <div className="flex items-center justify-between mb-4">
             <h4>Filters</h4>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowFilters(false)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setShowFilters(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -131,10 +136,7 @@ export function IrrigationSchedule() {
               </SelectContent>
             </Select>
 
-            <Button
-              variant="outline"
-              onClick={() => toast.success("Filters reset")}
-            >
+            <Button variant="outline" onClick={() => toast.success("Filters reset")}>
               Reset Filters
             </Button>
           </div>
@@ -162,7 +164,7 @@ export function IrrigationSchedule() {
               <p className="text-slate-600">{day}</p>
               <p className="text-slate-900">{currentWeek[index].date}</p>
             </div>
-            
+
             <Card className="p-4 min-h-[200px] space-y-2">
               {currentWeek[index].events.length === 0 ? (
                 <p className="text-slate-400 text-center mt-8">No events</p>
@@ -222,7 +224,7 @@ export function IrrigationSchedule() {
               {selectedEvent && `November ${selectedEvent.date}, 2024`}
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedEvent && (
             <div className="space-y-4">
               <div>
@@ -245,17 +247,18 @@ export function IrrigationSchedule() {
               )}
               <div className="p-4 bg-slate-50 rounded-lg">
                 <p className="text-slate-700">
-                  Duration: 2 hours • Water volume: 15,000 liters • Fire risk impact: ↓ 14% reduction
+                  Duration: 2 hours • Water volume: 15,000 liters • Fire risk impact: ↓ 14%
+                  reduction
                 </p>
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedEvent(null)}>
               Close
             </Button>
-            <Button 
+            <Button
               onClick={() => {
                 toast.success("Irrigation event accepted");
                 setSelectedEvent(null);

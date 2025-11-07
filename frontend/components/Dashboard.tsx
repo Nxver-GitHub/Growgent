@@ -1,4 +1,13 @@
-import { useState } from "react";
+/**
+ * Dashboard component displays the main overview of farm status and agent recommendations.
+ *
+ * Shows agent status cards, recent alerts, quick stats, and handles recommendation modals.
+ *
+ * @component
+ * @param {DashboardProps} props - Component props
+ * @returns {JSX.Element} The dashboard view
+ */
+import { useState, useCallback } from "react";
 import { Button } from "./ui/button";
 import { AgentStatusCard } from "./AgentStatusCard";
 import { MetricWidget } from "./MetricWidget";
@@ -6,44 +15,57 @@ import { AlertCard } from "./AlertCard";
 import { RecommendationModal } from "./RecommendationModal";
 import { Flame, Droplet, Shield, Zap } from "lucide-react";
 import { toast } from "sonner";
+import type { Recommendation, Page } from "../lib/types";
 
 interface DashboardProps {
-  onNavigate: (page: string) => void;
+  /** Callback function for page navigation */
+  onNavigate: (page: Page) => void;
+  /** Optional callback when an alert is dismissed */
   onDismissAlert?: () => void;
 }
 
-export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps) {
-  const [visibleAlerts, setVisibleAlerts] = useState([0, 1, 2]);
-  const [selectedRecommendation, setSelectedRecommendation] = useState<any>(null);
-  const handleAgentClick = (title: string) => {
-    if (title === "Fire-Adaptive Irrigation") {
-      setSelectedRecommendation({
-        agent: "Fire-Adaptive Irrigation Agent",
-        title: "Increase Irrigation for Drought Preparation",
-        confidence: 92,
-        reason: "Pre-PSPS watering recommended. Soil moisture below 40%, drought risk high, fire risk moderate. Strategic watering will protect crops and create defensive moisture barrier.",
-        fields: ["Field 1", "Field 3"],
-        duration: "2 hours",
-        waterVolume: "15,000 liters",
-        fireRiskImpact: "↓ 14% reduction",
-        waterSaved: "8% more efficient",
-      });
-    } else if (title === "Utility Shutoff Alert") {
-      setSelectedRecommendation({
-        agent: "PSPS Anticipation Agent",
-        title: "Pre-PSPS Emergency Watering",
-        confidence: 95,
-        reason: "Public Safety Power Shutoff predicted Nov 9, 14:00-02:00. Immediate pre-irrigation recommended to ensure crop survival during 12-hour power outage.",
-        fields: ["Field 1", "Field 2", "Field 3"],
-        duration: "3 hours",
-        waterVolume: "28,000 liters",
-        fireRiskImpact: "↓ 22% reduction",
-        waterSaved: "Emergency protocol",
-      });
-    } else {
-      onNavigate("agents");
-    }
-  };
+export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.Element {
+  const [visibleAlerts, setVisibleAlerts] = useState<number[]>([0, 1, 2]);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<Recommendation | null>(null);
+  /**
+   * Handles agent card click and sets the appropriate recommendation.
+   *
+   * @param {string} title - The title of the agent that was clicked
+   */
+  const handleAgentClick = useCallback(
+    (title: string): void => {
+      if (title === "Fire-Adaptive Irrigation") {
+        setSelectedRecommendation({
+          agent: "Fire-Adaptive Irrigation Agent",
+          title: "Increase Irrigation for Drought Preparation",
+          confidence: 92,
+          reason:
+            "Pre-PSPS watering recommended. Soil moisture below 40%, drought risk high, fire risk moderate. Strategic watering will protect crops and create defensive moisture barrier.",
+          fields: ["Field 1", "Field 3"],
+          duration: "2 hours",
+          waterVolume: "15,000 liters",
+          fireRiskImpact: "↓ 14% reduction",
+          waterSaved: "8% more efficient",
+        });
+      } else if (title === "Utility Shutoff Alert") {
+        setSelectedRecommendation({
+          agent: "PSPS Anticipation Agent",
+          title: "Pre-PSPS Emergency Watering",
+          confidence: 95,
+          reason:
+            "Public Safety Power Shutoff predicted Nov 9, 14:00-02:00. Immediate pre-irrigation recommended to ensure crop survival during 12-hour power outage.",
+          fields: ["Field 1", "Field 2", "Field 3"],
+          duration: "3 hours",
+          waterVolume: "28,000 liters",
+          fireRiskImpact: "↓ 22% reduction",
+          waterSaved: "Emergency protocol",
+        });
+      } else {
+        onNavigate("dashboard");
+      }
+    },
+    [onNavigate]
+  );
 
   const agentCards = [
     {
@@ -78,17 +100,26 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps) {
     },
   ];
 
-  const handleDismiss = (index: number) => {
-    setVisibleAlerts(visibleAlerts.filter((i) => i !== index));
-    onDismissAlert?.();
-    toast.success("Alert dismissed");
-  };
+  /**
+   * Handles dismissing an alert by removing it from the visible alerts list.
+   *
+   * @param {number} index - The index of the alert to dismiss
+   */
+  const handleDismiss = useCallback(
+    (index: number): void => {
+      setVisibleAlerts((prev: number[]) => prev.filter((i: number) => i !== index));
+      onDismissAlert?.();
+      toast.success("Alert dismissed");
+    },
+    [onDismissAlert]
+  );
 
   const alerts = [
     {
       severity: "critical" as const,
       title: "Irrigation Needed",
-      description: "Field 1: Soil moisture <40%, fire risk high. Recommend immediate pre-PSPS watering.",
+      description:
+        "Field 1: Soil moisture <40%, fire risk high. Recommend immediate pre-PSPS watering.",
       time: "2 hours ago",
       fields: ["Field 1", "Field 3"],
     },
@@ -146,16 +177,10 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps) {
           >
             View Fields
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => onNavigate("schedule")}
-          >
+          <Button variant="outline" onClick={() => onNavigate("schedule")}>
             Irrigation Schedule
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => onNavigate("chat")}
-          >
+          <Button variant="outline" onClick={() => onNavigate("chat")}>
             Chat with Agents
           </Button>
         </div>
@@ -166,11 +191,7 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps) {
         <h3 className="mb-4">Agent Status</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {agentCards.map((card, index) => (
-            <AgentStatusCard
-              key={index}
-              {...card}
-              onClick={() => handleAgentClick(card.title)}
-            />
+            <AgentStatusCard key={index} {...card} onClick={() => handleAgentClick(card.title)} />
           ))}
         </div>
       </div>
@@ -180,10 +201,7 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps) {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3>Recent Alerts</h3>
-            <Button
-              variant="ghost"
-              onClick={() => onNavigate("alerts")}
-            >
+            <Button variant="ghost" onClick={() => onNavigate("alerts")}>
               View All
             </Button>
           </div>

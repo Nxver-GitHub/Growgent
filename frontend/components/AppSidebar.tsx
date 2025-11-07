@@ -1,3 +1,13 @@
+/**
+ * AppSidebar component displays the main navigation sidebar.
+ *
+ * Provides navigation between different pages and shows alert counts.
+ * Supports collapsed/expanded states.
+ *
+ * @component
+ * @param {AppSidebarProps} props - Component props
+ * @returns {JSX.Element} The application sidebar
+ */
 import {
   LayoutDashboard,
   Map,
@@ -13,22 +23,28 @@ import {
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import type { Page } from "../lib/types";
 
 interface AppSidebarProps {
-  currentPage: string;
-  onNavigate: (page: string) => void;
+  /** Current active page */
+  currentPage: Page;
+  /** Callback function for page navigation */
+  onNavigate: (page: Page) => void;
+  /** Optional count of active alerts */
   alertCount?: number;
+  /** Whether the sidebar is collapsed */
   collapsed?: boolean;
+  /** Callback to toggle sidebar collapse state */
   onToggleCollapse: () => void;
 }
 
-export function AppSidebar({ 
-  currentPage, 
-  onNavigate, 
+export function AppSidebar({
+  currentPage,
+  onNavigate,
   alertCount = 0,
   collapsed = false,
   onToggleCollapse,
-}: AppSidebarProps) {
+}: AppSidebarProps): JSX.Element {
   const menuItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { id: "fields", icon: Map, label: "Fields" },
@@ -42,7 +58,7 @@ export function AppSidebar({
 
   return (
     <TooltipProvider>
-      <div 
+      <div
         className={`bg-white border-r border-slate-200 h-screen flex flex-col transition-all duration-300 ${
           collapsed ? "w-20" : "w-64"
         }`}
@@ -61,7 +77,7 @@ export function AppSidebar({
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentPage === item.id;
-              
+
               const button = (
                 <Button
                   variant={isActive ? "secondary" : "ghost"}
@@ -89,9 +105,7 @@ export function AppSidebar({
                 <li key={item.id} className="relative">
                   {collapsed ? (
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        {button}
-                      </TooltipTrigger>
+                      <TooltipTrigger asChild>{button}</TooltipTrigger>
                       <TooltipContent side="right">
                         <p>{item.label}</p>
                       </TooltipContent>
@@ -106,9 +120,9 @@ export function AppSidebar({
         </nav>
 
         <div className="p-4 border-t border-slate-200">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className={`w-full ${collapsed ? "justify-center px-2" : "justify-start"} text-slate-600`}
             onClick={onToggleCollapse}
           >
