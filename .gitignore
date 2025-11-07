@@ -1,0 +1,107 @@
+# Root-level .gitignore for Growgent
+# This file ensures sensitive files are NEVER committed
+
+# ============================================
+# CRITICAL: SECURITY-SENSITIVE FILES
+# ============================================
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.env
+*.env.local
+*.env.development
+*.env.production
+*.env.test
+.envrc
+
+# API Keys and Credentials
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.jks
+secrets/
+credentials/
+*.credentials
+*.secret
+api-keys.txt
+secrets.json
+credentials.json
+
+# Database files with potential sensitive data
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+dump.sql
+*.dump
+
+# Logs (may contain sensitive information)
+*.log
+logs/
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Build and cache directories
+build/
+dist/
+.cache/
+*.cache
+
+# Node modules (if any in root)
+node_modules/
+
+# Python (if any in root)
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Docker
+docker-compose.override.yml
+
+# Documentation that might contain secrets
+REORGANIZATION_SUMMARY.md
+

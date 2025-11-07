@@ -1,0 +1,427 @@
+# .cursorrules - Growgent Full-Stack Development Guide
+
+## Project Context: Growgent
+Growgent is an open-source, agentic platform for climate-adaptive irrigation and wildfire management. This file ensures all code development follows best practices, maintains consistency, and prioritizes code quality and maintainability.
+
+---
+
+## Golden Rule: 95% Certainty Threshold
+YOU MUST NOT IMPLEMENT CODE CHANGES UNLESS YOU ARE 95% CERTAIN YOU UNDERSTAND:
+1. The user's request and intent
+2. The exact implementation procedure
+3. How changes affect existing codebase (no breaking changes)
+4. Testing strategy and edge cases
+
+If you are unsure about ANY step:
+- STOP implementation immediately
+- Ask clarifying questions with 3+ specific options
+- Request code review or pair-programming session
+- Do NOT make assumptions or "best guess" implementations
+
+---
+
+## Project Structure & Organization
+
+```
+growgent/
+├── frontend/
+│   ├── app/                    # Next.js App Router
+│   │   ├── layout.tsx
+│   │   ├── page.tsx           # Dashboard home
+│   │   ├── (routes)/
+│   │   │   ├── schedule/
+│   │   │   ├── map/
+│   │   │   ├── agents/
+│   │   │   ├── metrics/
+│   │   │   ├── alerts/
+│   │   │   └── settings/
+│   │   └── api/               # API route handlers
+│   ├── components/
+│   │   ├── shared/            # Reusable components
+│   │   │   ├── AgentStatusCard.tsx
+│   │   │   ├── AlertCard.tsx
+│   │   │   ├── MetricWidget.tsx
+│   │   │   └── RecommendationCard.tsx
+│   │   ├── layout/            # Layout components
+│   │   │   ├── Header.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   └── Footer.tsx
+│   │   └── features/          # Feature-specific components
+│   ├── lib/
+│   │   ├── api.ts             # API client (React Query setup)
+│   │   ├── validators.ts      # Zod schemas
+│   │   ├── constants.ts       # App constants
+│   │   ├── hooks/             # Custom React hooks
+│   │   ├── utils/
+│   │   └── store/             # Zustand state management
+│   ├── styles/
+│   │   └── globals.css        # Tailwind imports
+│   ├── public/                # Static assets
+│   ├── .env.local             # Local env vars
+│   ├── package.json
+│   ├── tsconfig.json          # TypeScript strict mode
+│   ├── tailwind.config.js
+│   └── jest.config.js
+│
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py            # FastAPI initialization
+│   │   ├── config.py          # Settings
+│   │   ├── models/            # SQLAlchemy models
+│   │   ├── schemas/           # Pydantic models
+│   │   ├── api/               # API routes
+│   │   ├── agents/            # LangGraph agents
+│   │   ├── mcp/               # MCP servers
+│   │   ├── services/          # Business logic
+│   │   └── utils/
+│   ├── tests/
+│   ├── .env.local
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+├── docs/
+│   ├── API.md
+│   ├── ARCHITECTURE.md
+│   ├── SETUP.md
+│   └── MCP.md
+│
+└── .github/
+    ├── workflows/
+    └── PULL_REQUEST_TEMPLATE.md
+```
+
+---
+
+## Code Style & Quality Standards
+
+### TypeScript/Frontend Rules
+1. Strict Type Safety:
+   - Enable strict: true in tsconfig.json
+   - No any types; use unknown if needed
+   - All function signatures fully typed
+   - Props interfaces explicit
+
+2. Naming Conventions:
+   - Components: PascalCase (AgentStatusCard.tsx)
+   - Functions/hooks: camelCase (useRecommendations)
+   - Constants: UPPER_SNAKE_CASE (API_ENDPOINTS)
+   - Files: kebab-case.ts unless component (PascalCase.tsx)
+
+3. Component Structure:
+   - Import statements
+   - Type/Interface definitions
+   - Component function
+   - Hooks (useState, etc)
+   - Effects
+   - Event handlers
+   - Render JSX
+
+4. Use React Query for ALL data fetching:
+   - Example: const { data, isLoading, error } = useQuery(queryKey, fetchFn)
+
+5. Forms use React Hook Form + Zod:
+   - Define Zod schema
+   - Use zodResolver with useForm
+   - Display validation errors inline
+
+6. Styling: Tailwind CSS exclusively:
+   - All styling via className attribute
+   - No inline styles
+   - Custom styles only in globals.css (rare)
+
+7. JSDoc Comments on public functions/components:
+   - Describe what function does
+   - Document parameters
+   - Document return type
+   - Mention exceptions if any
+
+### Python/Backend Rules
+1. Type Hints Everywhere:
+   - def get_recommendations(field_id: str, limit: int = 10) -> list[Recommendation]:
+
+2. Naming Conventions:
+   - Functions/variables: snake_case
+   - Classes: PascalCase
+   - Constants: UPPER_SNAKE_CASE
+
+3. Docstrings (Google Style):
+   - Triple-quoted strings for functions/classes
+   - Args section: parameter names and descriptions
+   - Returns section: describe return value
+   - Raises section: list exceptions
+
+4. Async/Await for I/O operations:
+   - Use async def for FastAPI endpoints
+   - Use await for database/API calls
+
+5. FastAPI Best Practices:
+   - All endpoints type-hinted
+   - Use correct HTTP status codes
+   - Return Pydantic models as response_model
+
+6. Database Queries:
+   - Use SQLAlchemy ORM (never raw SQL)
+   - Always use filters
+   - Handle relationships explicitly
+
+7. Error Handling:
+   - Catch specific exceptions
+   - Log errors with context
+   - Raise HTTPException with meaningful detail
+
+8. Logging:
+   - Use Python logging module
+   - Levels: debug, info, warning, error, critical
+   - Include context (field_id, agent_name, etc)
+
+---
+
+## Testing Standards
+
+### Frontend Tests (Jest + React Testing Library)
+1. File Placement: Component tests in __tests__ or .test.tsx suffix
+2. Test What Matters:
+   - Component renders correctly
+   - User interactions work
+   - Error/loading states
+   - Prop variations
+
+3. Run tests: npm test
+
+### Backend Tests (pytest)
+1. File Placement: tests/ folder mirroring app structure
+2. Test What Matters:
+   - API endpoints (status, response shape)
+   - Business logic
+   - Database operations
+   - Edge cases
+
+3. Coverage Target: 80%+ unit tests; critical paths 100%
+4. Run tests: pytest
+
+---
+
+## Git & Merge Practices
+
+### Branch Naming
+- feature/agent-irrigation-logic
+- fix/psps-alert-timing
+- hotfix/critical-db-error
+- refactor/query-optimization
+- docs/api-documentation
+
+### Commit Messages (Conventional Commits)
+- feat(irrigation): add fire-risk scoring
+- fix(map): resolve PSPS layer not displaying
+- docs(api): update recommendation endpoint
+- refactor(backend): split agent orchestrator
+- test(agents): add drought scenario tests
+
+### PR Requirements
+1. Before pushing:
+   - Run linter (eslint, flake8)
+   - Run formatter (prettier, black)
+   - Run tests (npm test, pytest)
+
+2. PR needs:
+   - Link to GitHub issue
+   - Clear description
+   - Screenshots for UI changes
+   - Test coverage info
+   - No merge conflicts
+   - 1+ approval
+
+3. Code Review Checklist:
+   - Code follows style guide
+   - Types/docs added
+   - Tests pass
+   - No breaking changes
+   - Performance acceptable
+
+---
+
+## Dependency Management
+
+### Frontend
+- Critical: React, Next.js, TypeScript, Tailwind (lock exact)
+- Regular: React Query, Zod, Zustand, Mapbox
+- Only update via explicit PR with changelog review
+- Use npm ci in CI/CD (not npm install)
+
+### Backend
+- Critical: FastAPI, SQLAlchemy, Pydantic, Anthropic
+- Use requirements.txt with pinned versions or Poetry
+- Regular security scanning
+- Test all updates before merge
+
+---
+
+## Performance & Optimization
+
+### Frontend
+1. Image Optimization: Use Next.js Image component
+2. Code Splitting: Next.js handles per-route
+3. React Query: Set appropriate staleTime
+4. Tailwind CSS: Ensure purge configured
+5. Lighthouse Targets: Performance >80, Accessibility >95
+
+### Backend
+1. Database: Use indexes, avoid N+1 queries
+2. Caching: Cache decisions for 1-5 minutes
+3. API Response: Paginate lists (default 20, max 100)
+4. Async Processing: Use async/await for I/O
+
+---
+
+## Security Standards
+
+1. API Keys & Secrets: Store in .env.local (never commit)
+2. Authentication: OAuth2 via Salesforce/Google, JWT tokens
+3. Input Validation: Zod (frontend), Pydantic (backend)
+4. HTTPS Only: All production API calls
+5. CORS: Allow only frontend origin
+6. Rate Limiting: 100 requests/minute per user
+
+---
+
+## Documentation Standards
+
+### Code Documentation
+- Public Functions/Components: JSDoc or Google-style docstrings
+- Complex Logic: Inline comments explaining "why"
+- Edge Cases: Document assumptions
+
+### API Documentation
+- OpenAPI/Swagger: Auto-generated from FastAPI
+- Details: In docs/API.md (methods, params, responses)
+- Examples: Include curl/Python/TypeScript examples
+
+### Architecture Documentation
+- System Design: docs/ARCHITECTURE.md
+- Diagrams: Use Miro/Excalidraw (export as images)
+
+### Setup Documentation
+- Local Dev: docs/SETUP.md
+- Testing: Instructions for running tests
+
+---
+
+## CI/CD & Automation
+
+### GitHub Actions
+1. On Every Push:
+   - Linting (eslint + flake8)
+   - Format check (prettier + black)
+   - Type check (tsc, mypy)
+
+2. On Every PR:
+   - Full test suite
+   - Code coverage report
+   - Build artifacts
+
+3. On Merge to main:
+   - Deploy frontend to Vercel
+   - Deploy backend to Railway/Render
+
+---
+
+## Cursor-Specific Instructions
+
+### Before Every Implementation
+1. READ the request carefully
+   - What exactly does user want?
+   - What problem does it solve?
+   - How fits existing architecture?
+
+2. ASK if unsure (provide 3+ options):
+   - "Should I create new endpoint or reuse? A: POST /api/recommendations/accept, B: PATCH /api/recommendations/{id}, C: WebSocket?"
+   - "Which agent triggers this? A: Fire Agent, B: PSPS Agent, C: New?"
+   - WAIT for response before coding
+
+3. PLAN before coding:
+   - What files need changes?
+   - What APIs/services affected?
+   - What tests needed?
+
+4. REVIEW for breaking changes:
+   - Any existing API contracts changed?
+   - Could this break other features?
+   - Data migration needed?
+
+5. VERIFY 95% CERTAINTY:
+   - Can explain implementation in 2-3 sentences?
+   - Understand all edge cases?
+   - Confident no bugs?
+   - If NO → ASK BEFORE IMPLEMENTING
+
+### After Implementation
+1. Run Tests:
+   - npm test (frontend)
+   - pytest (backend)
+   - All must pass
+
+2. Format & Lint:
+   - npm run format (frontend)
+   - black app tests (backend)
+
+3. Commit (Conventional Commits):
+   - git commit -m "feat(agent): add fire-risk calculation"
+
+4. Push & Create PR:
+   - Clear PR description
+   - Link to GitHub issue
+   - Request review
+
+---
+
+## Documentation Rules: NO Unnecessary .md Files
+
+ONLY create .md files for:
+- API.md (API documentation)
+- ARCHITECTURE.md (System design)
+- SETUP.md (Dev setup)
+- MCP.md (MCP contracts)
+
+NEVER create:
+- Meeting notes (use GitHub discussions)
+- TODO lists (use GitHub issues)
+- Design docs (use Figma/Miro links)
+- Per-feature docs (document in code)
+
+---
+
+## Critical Questions to Ask If Unsure
+
+1. Feature Scope: "New feature or modification? Own agent or part of existing?"
+2. Data Flow: "Where from? API, MCP, user input? How validated?"
+3. State Management: "Global (Zustand) or component local?"
+4. API Changes: "New endpoint or reuse? Request/response shape?"
+5. Testing: "What edge cases? Happy path?"
+6. Performance: "Could be slow? Cache? Paginate?"
+7. Breaking Changes: "Break existing? Migration needed?"
+
+---
+
+## The Cursor Contract
+
+You (Cursor) agree to:
+- STOP if <95% certain before implementing
+- ASK clarifying questions (3+ options)
+- Follow code style, structure, naming exactly
+- Write tests for all new logic (80%+ coverage)
+- Add JSDoc/docstrings to public code
+- No breaking changes without discussion
+- Format and lint before commit
+- Ensure CI/CD passes locally
+
+User agrees to:
+- Respond clearly to questions
+- Review PRs thoughtfully
+- Provide implementation feedback
+
+Together, we build clean, maintainable, production-ready code for Growgent.
+
+---
+
+Generated: 2025-11-07 | Growgent Project

@@ -1,0 +1,237 @@
+{
+  "description": "CodeRabbit configuration for Growgent project - comprehensive code review automation",
+  "reviews": {
+    "profile": "chill",
+    "request_changes_on_review": true,
+    "auto_review": true
+  },
+  "chat": {
+    "auto_reply": true
+  },
+  "language": {
+    "typescript": {
+      "max_lines_of_code_per_file": 500,
+      "linter": "eslint",
+      "formatter": "prettier"
+    },
+    "python": {
+      "max_lines_of_code_per_file": 400,
+      "linter": "flake8",
+      "formatter": "black"
+    }
+  },
+  "rules": {
+    "type_safety": {
+      "enabled": true,
+      "level": "strict",
+      "description": "Enforce TypeScript strict mode, Python type hints on all public functions"
+    },
+    "naming_conventions": {
+      "enabled": true,
+      "level": "strict",
+      "description": "PascalCase for components, camelCase for functions, UPPER_SNAKE_CASE for constants"
+    },
+    "code_style": {
+      "enabled": true,
+      "level": "strict",
+      "description": "No inline styles (Tailwind only), no any types, no raw SQL"
+    },
+    "testing": {
+      "enabled": true,
+      "min_coverage": 80,
+      "description": "All new code must have tests; coverage target 80%+"
+    },
+    "documentation": {
+      "enabled": true,
+      "level": "strict",
+      "description": "JSDoc for TypeScript, docstrings for Python, all public functions documented"
+    },
+    "security": {
+      "enabled": true,
+      "level": "critical",
+      "description": "No hardcoded secrets, input validation required, SQL injection prevention"
+    },
+    "performance": {
+      "enabled": true,
+      "level": "strict",
+      "description": "Check for N+1 queries, memory leaks, unnecessary renders"
+    },
+    "git_practices": {
+      "enabled": true,
+      "conventional_commits": true,
+      "description": "Commits must follow conventional commit format (feat, fix, docs, refactor, test)"
+    }
+  },
+  "review_triggers": {
+    "on_pr_created": true,
+    "on_push": false,
+    "on_draft_pr": false,
+    "on_pull_request_review": true
+  },
+  "auto_checks": {
+    "breaking_changes": {
+      "enabled": true,
+      "description": "Flag potential breaking changes to APIs, database schemas, major dependencies"
+    },
+    "unused_imports": {
+      "enabled": true,
+      "description": "Flag and suggest removal of unused imports"
+    },
+    "dead_code": {
+      "enabled": true,
+      "description": "Flag unused variables, functions, exports"
+    },
+    "complexity": {
+      "enabled": true,
+      "max_cyclomatic_complexity": 10,
+      "description": "Flag functions with high cyclomatic complexity"
+    },
+    "duplication": {
+      "enabled": true,
+      "min_lines": 5,
+      "description": "Flag duplicated code blocks (suggest extraction)"
+    }
+  },
+  "focus_areas": [
+    {
+      "area": "Agents",
+      "path": "backend/app/agents",
+      "priority": "high",
+      "checks": [
+        "LangGraph graph structure correct",
+        "Agent communication via MCP",
+        "Agent logic tested",
+        "Type hints on all agent methods"
+      ]
+    },
+    {
+      "area": "API Endpoints",
+      "path": "backend/app/api",
+      "priority": "high",
+      "checks": [
+        "Status codes correct (200, 201, 400, 404, 500)",
+        "Request/response Pydantic models defined",
+        "Error handling comprehensive",
+        "Async/await used for I/O"
+      ]
+    },
+    {
+      "area": "React Components",
+      "path": "frontend/components",
+      "priority": "high",
+      "checks": [
+        "No inline styles (use Tailwind)",
+        "Props fully typed",
+        "Render optimized (no unnecessary re-renders)",
+        "JSDoc comments present"
+      ]
+    },
+    {
+      "area": "MCP Servers",
+      "path": "backend/app/mcp",
+      "priority": "high",
+      "checks": [
+        "JSON-RPC 2.0 compliant",
+        "Error handling for API failures",
+        "Fallback data for demo mode",
+        "Type hints on all functions"
+      ]
+    },
+    {
+      "area": "Database Models",
+      "path": "backend/app/models",
+      "priority": "medium",
+      "checks": [
+        "Indexes on frequently queried columns",
+        "Foreign keys defined",
+        "Relationships configured",
+        "Timestamps (created_at, updated_at)"
+      ]
+    },
+    {
+      "area": "Frontend Forms",
+      "path": "frontend/components/features",
+      "priority": "medium",
+      "checks": [
+        "Zod validation schema defined",
+        "React Hook Form usage correct",
+        "Error messages display inline",
+        "Accessibility (labels, ARIA)"
+      ]
+    }
+  ],
+  "exclude": [
+    "node_modules/**",
+    "__pycache__/**",
+    ".venv/**",
+    "venv/**",
+    "dist/**",
+    "build/**",
+    ".next/**",
+    "__generated__/**",
+    "*.lock",
+    "package-lock.json"
+  ],
+  "severity_levels": {
+    "critical": {
+      "message": "STOP: This must be fixed before merge",
+      "examples": ["Security vulnerability", "Breaking API change", "Merge conflict"]
+    },
+    "high": {
+      "message": "This should be fixed before merge",
+      "examples": ["Missing tests", "Type errors", "Performance issue"]
+    },
+    "medium": {
+      "message": "Consider addressing before merge",
+      "examples": ["Missing documentation", "Code style", "Minor refactor"]
+    },
+    "low": {
+      "message": "Nice to have",
+      "examples": ["Suggestion for improvement", "Code cleanup"]
+    }
+  },
+  "custom_messages": {
+    "missing_tests": "This change lacks test coverage. Please add unit tests and ensure 80%+ coverage.",
+    "missing_types": "TypeScript strict mode requires type hints on all parameters and returns. Please add types.",
+    "no_docstrings": "Public functions require JSDoc (TypeScript) or docstrings (Python). Please add documentation.",
+    "magic_numbers": "Avoid magic numbers. Define constants at module level with clear names.",
+    "n_plus_one": "Potential N+1 query detected. Consider using joins or selectinload in SQLAlchemy.",
+    "inline_styles": "Do not use inline styles. Use Tailwind CSS utilities via className attribute.",
+    "hardcoded_secrets": "Never hardcode secrets, API keys, or tokens. Use environment variables.",
+    "breaking_change": "This appears to be a breaking change. Please document migration path.",
+    "large_pr": "This PR is quite large. Consider breaking into smaller, focused changes.",
+    "no_issue_link": "Please link this PR to a GitHub issue for context and tracking."
+  },
+  "collaboration": {
+    "request_human_review": true,
+    "auto_request_on": [
+      "breaking_changes",
+      "security_issues",
+      "architecture_changes",
+      "major_refactors"
+    ]
+  },
+  "context": {
+    "project_name": "Growgent",
+    "description": "Open-source agentic platform for climate-adaptive irrigation and wildfire management",
+    "tech_stack": {
+      "frontend": "Next.js 14+, React 18+, TypeScript, Tailwind CSS, React Query, Zod",
+      "backend": "FastAPI, Python 3.11+, SQLAlchemy, Pydantic, LangGraph, Anthropic MCP",
+      "deployment": "Vercel (frontend), Railway/Render (backend), Docker, Kubernetes"
+    },
+    "key_principles": [
+      "95% certainty threshold before implementation",
+      "Comprehensive testing (80%+ coverage)",
+      "Type safety (strict mode everywhere)",
+      "Open-source (AGPL v3)",
+      "Production-ready code",
+      "Clear documentation",
+      "Security first",
+      "Performance optimized"
+    ]
+  },
+  "schedule": {
+    "review_frequency": "on_every_pr",
+    "summary_frequency": "daily"
+  }
+}
