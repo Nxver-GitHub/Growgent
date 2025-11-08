@@ -7,7 +7,9 @@
  * @component
  * @returns {JSX.Element} The main application layout
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/api";
 import { AppSidebar } from "./components/AppSidebar";
 import { AppHeader } from "./components/AppHeader";
 import { Dashboard } from "./components/Dashboard";
@@ -17,7 +19,10 @@ import { WaterMetrics } from "./components/WaterMetrics";
 import { Alerts } from "./components/Alerts";
 import { Chat } from "./components/Chat";
 import { Settings } from "./components/Settings";
+import { MobileNav } from "./components/layout/MobileNav";
 import { Toaster } from "./components/ui/sonner";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { useCriticalAlerts } from "./lib/hooks/useAlerts";
 
 type Page =
   | "dashboard"
@@ -29,16 +34,34 @@ type Page =
   | "chat"
   | "settings";
 
-export default function App(): JSX.Element {
+/**
+ * Inner app component that uses React Query hooks.
+ * Must be inside QueryClientProvider.
+ */
+function AppContent(): JSX.Element {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
-  const [alertCount, setAlertCount] = useState<number>(3);
+  
+  // Fetch alert count from API (with error handling)
+  const { data: criticalAlertsData, error: alertsError } = useCriticalAlerts({ limit: 100 });
+  
+  // Memoize alert count to prevent unnecessary re-renders
+  const alertCount = useMemo(() => {
+    if (alertsError) {
+      // Only log error once, not on every render
+      if (process.env.NODE_ENV === "development") {
+        console.warn("⚠️ Failed to fetch alerts count:", alertsError);
+      }
+      return 0;
+    }
+    return criticalAlertsData?.count || criticalAlertsData?.alerts?.length || 0;
+  }, [criticalAlertsData, alertsError]);
 
   /**
-   * Handles dismissing an alert and decrements the alert count.
+   * Handles dismissing an alert (alert count is now dynamic from API).
    */
   const handleDismissAlert = useCallback((): void => {
-    setAlertCount((prev) => Math.max(0, prev - 1));
+    // Alert count is now fetched from API, no need to manage state
   }, []);
 
   /**
@@ -69,7 +92,7 @@ export default function App(): JSX.Element {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       <AppSidebar
         currentPage={currentPage}
         onNavigate={(page: Page) => setCurrentPage(page)}
@@ -78,7 +101,7 @@ export default function App(): JSX.Element {
         onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <AppHeader
           farmName="Sunnydale Farm"
           notificationCount={alertCount}
@@ -87,12 +110,33 @@ export default function App(): JSX.Element {
           sidebarCollapsed={sidebarCollapsed}
         />
 
-        <main className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-7xl mx-auto">{renderPage()}</div>
-        </main>
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-20 md:pb-8 relative z-0 bg-slate-50">
+            <ErrorBoundary>
+              <div className="max-w-7xl mx-auto w-full">{renderPage()}</div>
+            </ErrorBoundary>
+          </main>
       </div>
+
+      <MobileNav
+        currentPage={currentPage}
+        onNavigate={(page: Page) => setCurrentPage(page)}
+        alertCount={alertCount}
+      />
 
       <Toaster />
     </div>
+  );
+}
+
+/**
+ * Main App component with providers.
+ */
+export default function App(): JSX.Element {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AppContent />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

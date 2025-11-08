@@ -41,23 +41,28 @@ export function AppHeader({
   sidebarCollapsed = false,
 }: AppHeaderProps): JSX.Element {
   return (
-    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
+    <header className="h-16 bg-white border-b-2 border-slate-200 px-6 flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-4 flex-1">
         {sidebarCollapsed && onToggleSidebar && (
-          <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
-            <Menu className="h-5 w-5 text-slate-600" />
+          <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="hover:bg-emerald-50">
+            <Menu className="h-5 w-5 text-slate-700" />
           </Button>
         )}
-        <h1 className="text-slate-800">{farmName}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{farmName}</h1>
       </div>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative" onClick={onNotificationClick}>
-          <Bell className="h-5 w-5 text-slate-600" />
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="relative hover:bg-emerald-50" 
+          onClick={onNotificationClick}
+        >
+          <Bell className="h-5 w-5 text-slate-700" />
           {notificationCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 rounded-full"
+              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 rounded-full bg-red-500 text-white shadow-md animate-pulse"
             >
               {notificationCount}
             </Badge>
@@ -66,11 +71,11 @@ export function AppHeader({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="gap-2">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-emerald-100 text-emerald-700">JD</AvatarFallback>
+            <Button variant="ghost" className="gap-2 hover:bg-emerald-50">
+              <Avatar className="h-9 w-9 border-2 border-emerald-200">
+                <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-sky-500 text-white font-semibold shadow-sm">JD</AvatarFallback>
               </Avatar>
-              <span className="text-slate-700">John Doe</span>
+              <span className="text-slate-800 font-medium">John Doe</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">

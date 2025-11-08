@@ -7,13 +7,15 @@
  * @param {AlertsProps} props - Component props
  * @returns {JSX.Element} The alerts management view
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { AlertCard } from "./AlertCard";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { toast } from "sonner";
-import type { AlertSeverity } from "../lib/types";
+import type { AlertSeverity, Alert } from "../lib/types";
+import { useAlerts, useAcknowledgeAlert } from "../lib/hooks/useAlerts";
+import { formatRelativeTime } from "../lib/utils/formatters";
 
 interface AlertsProps {
   /** Optional callback when an alert is dismissed */
@@ -22,93 +24,101 @@ interface AlertsProps {
 
 export function Alerts({ onDismissAlert }: AlertsProps): JSX.Element {
   const [filter, setFilter] = useState<"all" | AlertSeverity>("all");
-  const [dismissedAlerts, setDismissedAlerts] = useState<number[]>([]);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "severity" | "field">("newest");
+  const [page, setPage] = useState(1);
 
-  const alerts = [
+  // Fetch alerts from API
+  const { data: alertsData, isLoading, error } = useAlerts(
     {
-      id: 1,
-      severity: "critical" as const,
-      title: "Irrigation Needed",
-      description:
-        "Field 1: Soil moisture <40%, fire risk high. Recommend immediate pre-PSPS watering.",
-      time: "2 hours ago",
-      fields: ["Field 1", "Field 3"],
+      severity: filter === "all" ? undefined : filter,
+      acknowledged: false, // Only show unacknowledged alerts
+      page,
+      page_size: 20,
     },
-    {
-      id: 2,
-      severity: "warning" as const,
-      title: "PSPS Event Predicted",
-      description: "Public Safety Power Shutoff predicted Nov 9, 14:00-02:00 in your area.",
-      time: "3 hours ago",
-    },
-    {
-      id: 3,
-      severity: "warning" as const,
-      title: "Frost Risk Alert",
-      description:
-        "Climate Agent: 78% confidence frost in next 48h. Recommend frost cloth deployment.",
-      time: "4 hours ago",
-      fields: ["Field 2"],
-    },
-    {
-      id: 4,
-      severity: "info" as const,
-      title: "Crop Health Update",
-      description: "Field 2 NDVI improved to 0.75. Irrigation schedule working well.",
-      time: "5 hours ago",
-      fields: ["Field 2"],
-    },
-    {
-      id: 5,
-      severity: "info" as const,
-      title: "Market Opportunity",
-      description: "Strawberry prices ↑ 5%. Good time to harvest early based on market intel.",
-      time: "6 hours ago",
-    },
-    {
-      id: 6,
-      severity: "critical" as const,
-      title: "Low Water Reservoir",
-      description: "Water reservoir at 35% capacity. Plan for reduced irrigation in next 2 weeks.",
-      time: "8 hours ago",
-    },
-    {
-      id: 7,
-      severity: "warning" as const,
-      title: "Sensor Maintenance Required",
-      description:
-        "Soil moisture sensor #3 in Field 1 showing erratic readings. Schedule maintenance.",
-      time: "1 day ago",
-      fields: ["Field 1"],
-    },
-    {
-      id: 8,
-      severity: "info" as const,
-      title: "Weather Update",
-      description:
-        "No precipitation expected for next 7 days. Continue current irrigation schedule.",
-      time: "1 day ago",
-    },
-  ];
+    { enablePolling: true }
+  );
 
-  const handleDismiss = (id: number) => {
-    setDismissedAlerts([...dismissedAlerts, id]);
-    onDismissAlert?.();
-    toast.success("Alert dismissed");
-  };
+  const acknowledgeAlert = useAcknowledgeAlert();
 
-  const handleMarkAllRead = () => {
-    const allIds = alerts.map((a) => a.id);
-    setDismissedAlerts(allIds);
-    toast.success("All alerts marked as read");
-  };
+  // Transform API alerts to component format
+  const alerts = useMemo(() => {
+    if (!alertsData?.alerts) return [];
+    return alertsData.alerts.map((alert: Alert) => ({
+      id: alert.id,
+      severity: alert.severity,
+      title: alert.message.split(":")[0] || alert.message.substring(0, 50),
+      description: alert.message,
+      time: formatRelativeTime(alert.created_at),
+      fields: alert.field_id ? [alert.field_id] : undefined,
+    }));
+  }, [alertsData]);
 
-  const activeAlerts = alerts.filter((alert) => !dismissedAlerts.includes(alert.id));
+  // Sort alerts
+  const sortedAlerts = useMemo(() => {
+    const sorted = [...alerts];
+    switch (sortBy) {
+      case "newest":
+        return sorted.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+      case "oldest":
+        return sorted.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+      case "severity":
+        const severityOrder = { critical: 0, warning: 1, info: 2 };
+        return sorted.sort(
+          (a, b) => severityOrder[a.severity] - severityOrder[b.severity]
+        );
+      default:
+        return sorted;
+    }
+  }, [alerts, sortBy]);
 
-  const filteredAlerts = activeAlerts.filter((alert) => {
-    if (filter === "all") return true;
-    return alert.severity === filter;
-  });
+  const handleDismiss = useCallback(
+    (id: string) => {
+      acknowledgeAlert.mutate(id);
+      onDismissAlert?.();
+    },
+    [acknowledgeAlert, onDismissAlert]
+  );
+
+  const handleMarkAllRead = useCallback(() => {
+    // Acknowledge all visible alerts
+    alerts.forEach((alert) => {
+      acknowledgeAlert.mutate(alert.id);
+    });
+    toast.success("All alerts acknowledged");
+  }, [alerts, acknowledgeAlert]);
+
+  // Show skeleton loaders while loading
+  if (isLoading && !alertsData) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-8 w-48 bg-slate-200 rounded animate-pulse" />
+          <div className="h-10 w-32 bg-slate-200 rounded animate-pulse" />
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-24 bg-slate-200 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-red-600 mb-2">Failed to load alerts</p>
+        <p className="text-slate-500 text-sm">
+          {error instanceof Error ? error.message : "Unknown error"}
+        </p>
+        <Button className="mt-4" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  const activeAlerts = sortedAlerts;
 
   return (
     <div className="space-y-6">
@@ -140,7 +150,7 @@ export function Alerts({ onDismissAlert }: AlertsProps): JSX.Element {
           </TabsList>
         </Tabs>
 
-        <Select defaultValue="newest">
+        <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
@@ -154,10 +164,10 @@ export function Alerts({ onDismissAlert }: AlertsProps): JSX.Element {
       </div>
 
       {/* Alert List */}
-      {filteredAlerts.length > 0 ? (
+      {activeAlerts.length > 0 ? (
         <>
           <div className="space-y-4">
-            {filteredAlerts.map((alert) => (
+            {activeAlerts.map((alert) => (
               <AlertCard
                 key={alert.id}
                 {...alert}
@@ -167,10 +177,28 @@ export function Alerts({ onDismissAlert }: AlertsProps): JSX.Element {
             ))}
           </div>
 
-          {/* Load More */}
-          <div className="flex justify-center pt-4">
-            <Button variant="outline">Load More Alerts</Button>
-          </div>
+          {/* Pagination */}
+          {alertsData && alertsData.total > alertsData.page_size && (
+            <div className="flex justify-center items-center gap-4 pt-4">
+              <Button
+                variant="outline"
+                disabled={page === 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <span className="text-slate-600">
+                Page {page} of {Math.ceil(alertsData.total / alertsData.page_size)}
+              </span>
+              <Button
+                variant="outline"
+                disabled={page >= Math.ceil(alertsData.total / alertsData.page_size)}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          )}
         </>
       ) : (
         <div className="text-center py-16">

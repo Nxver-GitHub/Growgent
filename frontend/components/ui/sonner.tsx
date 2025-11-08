@@ -1,10 +1,9 @@
-"use client";
-
-import { useTheme } from "next-themes@0.4.6";
-import { Toaster as Sonner, ToasterProps } from "sonner@2.0.3";
+import { Toaster as Sonner, ToasterProps } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+  // For Vite/React, we'll use system theme detection
+  // If you want theme switching, integrate with your theme provider
+  const theme = "system";
 
   return (
     <Sonner
@@ -17,6 +16,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-border": "var(--border)",
         } as React.CSSProperties
       }
+      position="top-right"
+      toastOptions={{
+        style: {
+          zIndex: 110, // Above dialogs
+        },
+      }}
       {...props}
     />
   );

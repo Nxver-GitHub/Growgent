@@ -53,7 +53,8 @@ export default defineConfig({
     outDir: "build",
   },
   server: {
-    port: 3000,
-    open: true,
+    port: 3001,
+    open: false, // Don't auto-open browser
+    host: true, // Allow external connections
   },
 });

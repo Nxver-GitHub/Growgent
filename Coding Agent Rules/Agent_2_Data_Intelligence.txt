@@ -1,0 +1,326 @@
+# AGENT 2: Water Efficiency & PSPS Alerting
+
+## Agent Name: Growgent Data Intelligence
+## Primary Responsibility: Water Efficiency Agent + PSPS Anticipation Agent
+## Focus Area: Water metrics, alert orchestration, PSPS event prediction
+## Git Branch: feature/backend-water-psps-agents
+
+---
+
+## Mission Statement
+
+You are responsible for building the **WATER EFFICIENCY TRACKING** and **UTILITY SHUTOFF ANTICIPATION** systems of Growgent. Your role is to:
+1. Track and measure water savings from fire-adaptive irrigation recommendations
+2. Anticipate Public Safety Power Shutoff (PSPS) events and pre-alert farmers
+3. Coordinate alert generation and delivery
+
+These systems empower farmers to understand impact and prepare for emergencies.
+
+---
+
+## Your Specific Deliverables for MVP
+
+### 1. Water Efficiency Agent
+**Status:** Impact Measurement
+**Must Complete by Saturday:**
+- Create LangGraph agent node: `WaterEfficiencyAgent`
+- Implement comparison logic:
+  ```
+  1. Input: field_id, recommended_irrigation, actual_irrigation (if accepted)
+  2. Calculate:
+     - water_recommended_liters (from Fire-Adaptive Agent rec)
+     - water_typical_liters (baseline: typical schedule for crop + season)
+     - water_saved_liters = water_typical_liters - water_recommended_liters
+     - efficiency_percent = (water_saved / water_typical) * 100
+  3. Track metrics:
+     - Season total water saved
+     - Cost savings ($)
+     - Drought stress score
+     - Yield impact estimate (if available via CRM)
+  4. Output: MetricsResponse with all fields
+  ```
+
+**Code Quality Rules:**
+- All calculations use type hints and Pydantic models
+- Handle edge cases (no historical data, incomplete season)
+- Cache metrics (update only on new recommendations)
+- Log every metric calculation (info level)
+
+**Implementation Approach:**
+- Pull historical irrigation data from database
+- Compare against farmer typical schedule (stored in Field model or mock)
+- Accumulate season totals (sum all recommendations + actual usage)
+
+**Ask Me If Unsure:**
+- How do we get "typical schedule" baseline? (hardcoded by crop? farmer input?)
+- Should we estimate yield impact or only track water/cost?
+- How often should metrics update? (every recommendation? hourly? daily?)
+
+---
+
+### 2. PSPS Anticipation Agent
+**Status:** Emergency Response
+**Must Complete by Saturday:**
+- Create LangGraph agent node: `PSPSAlertAgent`
+- Implement PSPS detection & alert logic:
+  ```
+  1. Poll Utility PSPS MCP Server (every 30min or on-demand)
+  2. For each active/predicted shutoff:
+     - Check: Does it affect any farmer's fields? (compare location)
+     - Calculate: Duration, severity, affected zones
+     - Generate Alert if NEW event detected
+  3. PSPS Alert Triggers:
+     - IF shutoff predicted within 48h:
+       → Send pre-irrigation recommendation
+       → Alert severity: CRITICAL (red)
+     - IF shutoff active:
+       → Monitor field sensors (don't irrigate during shutoff)
+       → Send "Power restored, normal schedule resumes" alert when done
+  4. Output: PSPSAlert with all context
+  ```
+
+**Code Quality Rules:**
+- Track seen PSPS events (don't duplicate alerts)
+- Use geospatial queries (PostGIS) to match shutoff areas to fields
+- All alerts timestamped and searchable
+- Logging all PSPS events + farmer notifications
+
+**Implementation Approach:**
+- Background task or scheduled job (every 30 minutes)
+- Fetch latest shutoff map from Utility PSPS MCP server
+- Compare against Field.location_geom (PostGIS spatial query)
+- Create Alert records for affected fields
+- (Optional Saturday) Integrate with Agentforce for SMS/push (Agent 3 may do)
+
+**Ask Me If Unsure:**
+- Should PSPS polling be scheduled job or triggered on-demand?
+- How do we handle overlapping shutoffs (same field, multiple events)?
+- Should pre-PSPS irrigation be auto-triggered or farmer-approved?
+
+---
+
+### 3. Alert Orchestration & Delivery
+**Status:** Integration
+**Must Complete by Saturday:**
+- Create alert routing:
+  ```
+  Fire-Adaptive Agent → Recommendation Alert
+  Water Efficiency Agent → Savings Milestone Alert
+  PSPS Agent → Shutoff Warning Alert
+  ```
+
+- Create Alert model & API:
+  - POST `/api/alerts/create` (internal, triggered by agents)
+  - GET `/api/alerts?field_id=X&severity=CRITICAL` (paginated, filterable)
+  - POST `/api/alerts/{alert_id}/acknowledge` (mark as read)
+
+- Alert types:
+  ```python
+  class AlertType(str, Enum):
+      IRRIGATION_RECOMMENDED = "irrigation"
+      PSPS_WARNING = "psps_warning"
+      PSPS_ACTIVE = "psps_active"
+      WATER_SAVED_MILESTONE = "water_saved"
+      FIRE_RISK_WARNING = "fire_risk"
+  ```
+
+**Code Quality Rules:**
+- All alerts immutable (no editing, only create/acknowledge)
+- Timestamp all alerts (created_at, acknowledged_at)
+- Severity levels: CRITICAL (red), WARNING (amber), INFO (blue)
+- Alert retention: Keep for 90 days, then archive
+
+**Implementation Approach:**
+- Alert model stores: type, severity, field_id, agent_type, message, acknowledged_at
+- Agents create alerts by calling AlertService.create_alert()
+- Frontend polls GET /api/alerts to display
+
+---
+
+### 4. Metrics API Endpoints
+**Status:** Data Access
+**Must Complete by Saturday:**
+- GET `/api/metrics/water?field_id=X&period=season` → Water metrics for field
+- GET `/api/metrics/water/summary?farm_id=X` → Farm-wide water metrics
+- GET `/api/metrics/fire-risk?field_id=X` → Fire risk reduction percentage
+- GET `/api/alerts?severity=CRITICAL` → Critical alerts (for dashboard priority)
+
+**Response Format:**
+```python
+class WaterMetricsResponse(BaseModel):
+    field_id: str
+    water_recommended_liters: int
+    water_typical_liters: int
+    water_saved_liters: int
+    efficiency_percent: float
+    cost_saved_usd: float
+    drought_stress_score: 0-100
+    last_updated: datetime
+```
+
+**Code Quality Rules:**
+- All responses cached (Redis, 1-hour TTL)
+- Pagination for large result sets
+- Consistent error handling (400, 404, 500)
+
+---
+
+### 5. Services & Utilities Layer
+**Status:** Helper Functions
+**Must Create:**
+- `AlertService.create_alert(field_id, type, severity, message)` → creates + logs alert
+- `MetricsService.calculate_water_saved(field_id)` → returns WaterMetricsResponse
+- `PSPSService.check_shutoff_impact(field_id, shutoff_areas)` → returns affected boolean
+- `GeoService.does_field_intersect_zone(field_geom, zone_geom)` → PostGIS query
+
+**Code Quality Rules:**
+- All services use dependency injection (FastAPI Depends)
+- All functions type-hinted
+- All functions logged (entry + exit)
+
+---
+
+### 6. Testing for Water & PSPS Agents
+**Status:** Quality Gate
+**Must Complete by Saturday Afternoon:**
+- Unit tests for Water Efficiency Agent:
+  - Test water saved calculation (different baselines)
+  - Test cost calculation
+  - Test edge case (no historical data)
+
+- Unit tests for PSPS Agent:
+  - Test shutoff detection (field intersects shutoff area)
+  - Test no duplicate alerts
+  - Test pre-PSPS irrigation recommendation
+
+- API tests:
+  - GET /api/metrics/water returns correct shape
+  - POST /api/alerts/create creates alert
+  - GET /api/alerts?severity=CRITICAL filters correctly
+
+**Coverage Target:** 80%+
+**Run Tests:** `pytest tests/` (all must pass)
+
+---
+
+## Development Constraints & Rules
+
+### 1. CRITICAL: Ask Before Implementation
+If <95% certain about:
+- How to calculate "typical schedule" baseline
+- PSPS polling frequency (every 30 min? every hour?)
+- Should pre-PSPS irrigation trigger automatically?
+- → ASK ME with options before coding
+
+### 2. Code Organization
+- Agent logic: `backend/app/agents/water_efficiency.py` and `backend/app/agents/psps.py`
+- Services: `backend/app/services/alert.py`, `backend/app/services/metrics.py`
+- Models: Ensure `Alert` model created in `backend/app/models/alert.py`
+- API routes: Add to `backend/app/api/agents.py` or create `backend/app/api/alerts.py`
+- Tests: `backend/tests/test_agents/test_water.py` and `backend/tests/test_agents/test_psps.py`
+
+### 3. Avoid Bloat
+- **DO:** Build Water Efficiency + PSPS agents, alert routing
+- **DON'T:** Add notifications delivery (Agent 3 handles UI/chat)
+- **DON'T:** Add analytics dashboards (Agent 3 handles)
+- **DON'T:** Add third-party integrations beyond MCP servers
+
+### 4. Coordinate with Agent 1
+- **Wait for:** Recommendation model + API endpoint from Agent 1
+- **Depend on:** Agent 1's database schema for fields + recommendations
+- **Use:** Agent 1's MCP servers (weather, PSPS, sensors)
+- **Don't duplicate:** Agent 1 already implements fire-risk logic
+
+### 5. Data Dependencies
+- Pull Fire-Adaptive recommendations from database (Agent 1 creates them)
+- Poll PSPS data from Agent 1's Utility MCP server
+- Query field data to match shutoff locations
+
+---
+
+## Git Strategy for This Agent
+
+**Branch:** `feature/backend-water-psps-agents`
+**Commit Pattern:**
+- `feat(agent): initialize water efficiency agent`
+- `feat(agent): implement PSPS anticipation agent`
+- `feat(service): add alert orchestration service`
+- `feat(api): create metrics endpoints`
+- `test(agents): add water/PSPS tests`
+
+**Keep commits focused and small.**
+
+---
+
+## Files You'll Create/Modify
+
+```
+backend/
+├── app/
+│   ├── models/
+│   │   └── alert.py (Alert model with enum types)
+│   ├── schemas/
+│   │   ├── alert.py
+│   │   └── metrics.py
+│   ├── agents/
+│   │   ├── water_efficiency.py
+│   │   └── psps.py
+│   ├── services/
+│   │   ├── alert.py (AlertService)
+│   │   ├── metrics.py (MetricsService)
+│   │   ├── psps.py (PSPSService)
+│   │   └── geo.py (GeoService for PostGIS)
+│   ├── api/
+│   │   ├── alerts.py (alert endpoints)
+│   │   └── metrics.py (metrics endpoints)
+│   └── main.py (register new routes + agents)
+├── tests/
+│   ├── test_agents/
+│   │   ├── test_water.py
+│   │   └── test_psps.py
+│   └── test_services/
+│       ├── test_alert.py
+│       └── test_metrics.py
+└── requirements.txt (if new deps needed)
+```
+
+---
+
+## Success Criteria for Agent 2
+
+- ✅ Water Efficiency Agent calculates savings correctly
+- ✅ PSPS Agent detects shutoff events + matches to fields
+- ✅ Alert creation + retrieval working (API tested)
+- ✅ All 4 metrics endpoints return correct data
+- ✅ Tests pass (80%+ coverage)
+- ✅ Zero type errors
+- ✅ Conventional commits
+- ✅ No duplicate code (reuse Agent 1 base classes)
+
+---
+
+## Day 1 Priority (Friday)
+1. Alert model + schema
+2. Water Efficiency Agent (basic calculation logic)
+3. AlertService + MetricsService skeleton
+4. One endpoint: GET /api/metrics/water (working)
+
+## Day 2 Priority (Saturday)
+1. PSPS Agent (full implementation)
+2. Remaining metrics endpoints
+3. Alert retrieval + filtering endpoints
+4. Tests for all agents + services
+5. Integration: agents → services → API
+
+---
+
+## Contact Points with Other Agents
+
+**Agent 1 (Backend Architect):** Consume Recommendation model + MCP servers
+**Agent 3 (Frontend):** Display alerts + metrics on dashboard
+
+Make sure your alert format is clean and consumable by frontend.
+
+---
+
+**You are the impact measurement & emergency response system. Make this work reliably. 💧🚨**

@@ -1,15 +1,33 @@
-
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Growgent Frontend UI/UX Design</title>
-    </head>
-
-    <body>
-      <div id="root"></div>
-      <script type="module" src="/main.tsx"></script>
-    </body>
-  </html>
-  
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Growgent - Climate-Adaptive Irrigation Platform</title>
+    <style>
+      /* Prevent flash of unstyled content */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #root {
+        min-height: 100vh;
+      }
+      /* Loading indicator */
+      #root:empty::before {
+        content: "Loading Growgent...";
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        color: #64748b;
+        font-size: 1.125rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

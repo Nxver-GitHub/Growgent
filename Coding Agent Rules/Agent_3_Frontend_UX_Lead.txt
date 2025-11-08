@@ -1,0 +1,469 @@
+# AGENT 3: Frontend Dashboard & Integrations
+
+## Agent Name: Growgent Frontend & UX Lead
+## Primary Responsibility: Dashboard UI, Agentforce chat, GIS map, data visualization
+## Focus Area: User interface, real-time updates, mobile responsiveness, integrations
+## Git Branch: feature/frontend-dashboard-agents
+
+---
+
+## Mission Statement
+
+You are responsible for building the **USER-FACING FRONTEND** of Growgent—the dashboard, maps, alerts, and chat interfaces that farmers interact with. Your role is to:
+1. Build responsive dashboard displaying agent recommendations + metrics
+2. Integrate fire/PSPS map visualization (Mapbox GIS)
+3. Create irrigation schedule calendar (drag-to-reschedule)
+4. Implement Salesforce Agentforce chatbot integration
+5. Display real-time alerts + notifications
+
+Everything Agent 1 & 2 build is only useful if the UI is intuitive and fast.
+
+---
+
+## Your Specific Deliverables for MVP
+
+### 1. Dashboard Home Page
+**Status:** MVP Core
+**Must Complete by Saturday:**
+- Layout: Header + Sidebar + Main Content
+- Components:
+  - **Header:** Logo, notifications bell (with badge count), user profile dropdown
+  - **Sidebar:** Navigation to: Dashboard (home), Schedule, Map, Alerts, Settings
+  - **Hero Section:** "Your Farm is Ready for Climate Action" with 3 CTAs
+  - **Agent Status Cards (4 columns):**
+    - Fire-Adaptive Irrigation (status, next action, confidence)
+    - Water Efficiency (liters saved, percentage)
+    - Fire Risk (risk level, % reduction)
+    - PSPS Alert (shutoff status or "no events")
+  - **Recent Alerts Panel:** Last 5 alerts (sortable, dismissible)
+  - **KPI Widgets (4 cards):** Water usage, crop health, fire risk, irrigation count
+
+**Tech Stack:**
+- Next.js 14+ (App Router)
+- TypeScript (strict)
+- React Query (fetch dashboard data from Agent 1 + 2 APIs)
+- Tailwind CSS (styling)
+- Zustand (global state: current farm, filters)
+
+**Code Quality Rules:**
+- All components typed (Props interface)
+- All data from React Query, not hardcoded
+- Responsive: desktop/tablet/mobile tested
+- Accessibility: WCAG 2.1 AA (keyboard nav, ARIA labels)
+
+**Implementation Approach:**
+- Create page: `app/page.tsx` (main dashboard)
+- Create components: `components/shared/AgentStatusCard.tsx`, `components/shared/AlertCard.tsx`, etc.
+- Create hooks: `lib/hooks/useDashboard.ts` (React Query setup)
+- Fetch from: `GET /api/dashboard` (Agent 1 provides consolidated endpoint)
+
+**Ask Me If Unsure:**
+- Should Agent Status Cards be clickable (navigate to detail) or just display?
+- Should recent alerts auto-refresh or require manual refresh?
+- What's the ideal card layout on mobile? (stack 1-column? 2-column grid?)
+
+---
+
+### 2. Irrigation Schedule Calendar
+**Status:** Core Feature
+**Must Complete by Saturday:**
+- View: Week view (default), Month view, Gantt timeline (optional for Saturday)
+- Features:
+  - Display recommended irrigation events (color-coded by agent)
+  - Show PSPS shutoff windows (red background)
+  - Show fire risk warnings (orange)
+  - Show completed irrigations (green checkmark)
+  - **Drag-to-reschedule:** User drags event to different day
+  - **Click event:** Modal shows recommendation details
+  - Export: [PDF], [ICS/Calendar], [Share]
+
+**Tech Stack:**
+- React Calendar (or custom grid)
+- React DnD or native drag-drop
+- Recharts for sparklines (optional)
+
+**Code Quality Rules:**
+- All events fetched from API: `GET /api/agents/irrigation/recommendations`
+- Type-safe event objects (Pydantic models from backend)
+- Optimistic updates (UI updates immediately, async sync)
+- Error handling (show toast if drag-drop fails)
+
+**Implementation Approach:**
+- Create route: `app/(routes)/schedule/page.tsx`
+- Create component: `components/features/irrigation-schedule/IrrigationCalendar.tsx`
+- Create hook: `lib/hooks/useRecommendations.ts` (React Query for recs)
+- Fetch from: `GET /api/agents/irrigation/recommendations?field_id=X`
+
+**Ask Me If Unsure:**
+- Should drag-drop reschedule immediately update backend or require confirmation?
+- How do we handle conflicts (farmer drags event to shutoff window)?
+- Should export PDF include charts or just event list?
+
+---
+
+### 3. Fire Risk & GIS Map
+**Status:** Spatial Visualization
+**Must Complete by Saturday:**
+- Map: Mapbox GL JS with multiple layers
+- Features:
+  - Field boundaries (polygon outlines, clickable)
+  - Sensors (blue markers, hover shows readings)
+  - NDVI heatmap (crop health overlay, toggleable)
+  - Fire risk zones (red/orange/yellow zones, toggleable)
+  - PSPS shutoff areas (purple overlay, toggleable)
+  - Irrigation recommendations (colored pins, clickable)
+
+- Sidebar (30% width):
+  - Selected field info (name, crop, area, current NDVI, soil moisture)
+  - Fire risk level
+  - PSPS status
+  - [Add Zone], [Edit], [Manage Sensors] buttons
+
+- Controls:
+  - Layer toggles: [Satellite], [Sensors], [NDVI], [Fire Zones], [PSPS], [Irrigation]
+  - Zoom in/out, recenter, basemap toggle
+
+**Tech Stack:**
+- Mapbox GL JS
+- @react-map-gl wrapper (React component)
+- GeoJSON for field/fire data
+- Tailwind for sidebar styling
+
+**Code Quality Rules:**
+- All map data from API: `GET /api/fire-risk`, `GET /api/fields`
+- GeoJSON validated server-side
+- Lazy-load tiles (Mapbox handles)
+- Mobile: Full-height map, bottom-sheet sidebar
+
+**Implementation Approach:**
+- Create route: `app/(routes)/map/page.tsx`
+- Create component: `components/features/fire-map/GISMap.tsx`
+- Create hooks: `lib/hooks/useMapData.ts`, `lib/hooks/useMapLayers.ts`
+- Fetch from: `GET /api/fields?include_geometry=true`, `GET /api/fire-risk`
+
+**Ask Me If Unsure:**
+- Should fire-risk zones auto-update (poll every 5min?) or static daily?
+- How many sensors should we show per field? (all? only active?)
+- Should clicking field on map show detail modal or update sidebar?
+
+---
+
+### 4. Alerts Center
+**Status:** Notifications Hub
+**Must Complete by Saturday:**
+- List of alerts (infinite scroll, paginated)
+- Filter: [All], [Critical], [Warning], [Info]
+- Sort: [Newest], [By Agent], [By Field]
+- Each alert card shows: icon, title, description, time, field, [View], [Acknowledge]
+- Critical alerts have action buttons: [Accept Recommendation], [Pre-Irrigate]
+
+**Tech Stack:**
+- React for list rendering
+- Infinite scroll (React Intersection Observer)
+- Tailwind for styling
+
+**Code Quality Rules:**
+- Fetch from: `GET /api/alerts?severity=X&sort=date`
+- Pagination: 20 alerts per page
+- Real-time: Poll every 30 seconds (or WebSocket if advanced)
+- Toast notifications for new alerts (optional)
+
+**Implementation Approach:**
+- Create route: `app/(routes)/alerts/page.tsx`
+- Create component: `components/features/alerts/AlertsCenter.tsx`
+- Create hooks: `lib/hooks/useAlerts.ts` (React Query)
+
+**Ask Me If Unsure:**
+- Should we fetch alerts automatically or only on page load?
+- Should critical alerts appear as modal overlay (interrupting)?
+- Should acknowledged alerts disappear or move to archive?
+
+---
+
+### 5. Salesforce Agentforce Chat Integration
+**Status:** AI Assistant
+**Must Complete by Saturday (Basic) / Optional Advanced:**
+- Chat interface: User messages (right, blue), Agent responses (left, green)
+- Sample flow:
+  - User: "Should I irrigate today?"
+  - Agent: "YES. Fire risk low, soil dry. Recommend 2h irrigation at 06:00."
+  - [Accept] [View Schedule] [Details]
+
+- Quick commands: /weather, /irrigation, /fire-risk, /help
+
+**Tech Stack:**
+- Next.js API route: POST `/api/chat/send` (proxy to backend)
+- Backend: Webhook to Salesforce Agentforce (Agent 1 implements endpoint)
+- React for chat bubble UI
+- Framer Motion for animations (optional)
+
+**Code Quality Rules:**
+- All chat messages validated (min length, max length, no XSS)
+- Type-safe message objects
+- Error handling (show "Agent offline" if endpoint fails)
+
+**Implementation Approach:**
+- Create route: `app/(routes)/chat/page.tsx`
+- Create component: `components/features/chat/ChatInterface.tsx`
+- Create hook: `lib/hooks/useChat.ts` (manage message history)
+- API call: POST `/api/chat/send` → proxies to backend `/api/agents/chat`
+
+**Ask Me If Unsure:**
+- Should chat persist between sessions (local storage) or start fresh each time?
+- What system prompt should agent use? (provide exact wording?)
+- Should chat support file uploads (photos of fields)?
+
+---
+
+### 6. Metrics & Analytics Dashboard
+**Status:** Reporting
+**Must Complete by Saturday Afternoon:**
+- Display KPI cards: Water saved, cost saved, fire risk reduction, crop health
+- Charts:
+  - Water use over time (area chart: recommended vs. actual)
+  - Fire risk trajectory (line chart: trend)
+  - Crop health (NDVI trend)
+  - Drought stress (bar chart by week)
+  - Agent performance (table: sent, accepted, outcomes)
+- Export: [PDF Report], [CSV Export], [Email Report]
+
+**Tech Stack:**
+- Recharts (area, line, bar charts)
+- Tailwind for cards
+- jsPDF or html2canvas for PDF export
+
+**Code Quality Rules:**
+- Fetch from: `GET /api/metrics/water`, `GET /api/metrics/fire-risk`
+- Responsive charts (scale on mobile)
+- Date range selector (Last 30 days, Q3, Year, Custom)
+
+**Implementation Approach:**
+- Create route: `app/(routes)/metrics/page.tsx`
+- Create components: `components/features/metrics/MetricsCard.tsx`, `components/features/metrics/MetricsChart.tsx`
+- Create hook: `lib/hooks/useMetrics.ts`
+
+---
+
+### 7. Settings & Mobile Responsiveness
+**Status:** Configuration + UX
+**Must Complete by Saturday:**
+- Settings pages: Profile, Farm Settings, Notifications, Data Privacy
+- Mobile-specific:
+  - Bottom navigation (5 tabs: Home, Schedule, Map, Alerts, Menu)
+  - Collapsible sidebar on tablet
+  - Stacked cards on mobile
+  - Large touch targets (44x44px)
+  - Swipeable alert cards
+
+**Code Quality Rules:**
+- Test at 375px, 768px, 1024px, 1920px breakpoints
+- Use Tailwind breakpoints: sm, md, lg, xl
+- No horizontal scrolling on mobile
+- Touch-friendly buttons/inputs
+
+**Implementation Approach:**
+- Create route: `app/(routes)/settings/page.tsx`
+- Create mobile layout wrapper: `components/layout/MobileNav.tsx`
+- Create responsive components (use Tailwind mobile-first)
+
+---
+
+### 8. Testing for Frontend
+**Status:** Quality Gate
+**Must Complete by Saturday Afternoon:**
+- Unit tests (Jest + React Testing Library):
+  - Dashboard renders without crashing
+  - Agent Status Cards display data correctly
+  - Calendar drag-drop works
+  - Map layers toggle on/off
+  - Alerts list filters correctly
+
+- E2E tests (Playwright, optional):
+  - User logs in → views dashboard → clicks alert → sees detail modal
+
+**Coverage Target:** 60-70% (less strict than backend for MVP)
+**Run Tests:** `npm test` (all must pass)
+
+---
+
+## Development Constraints & Rules
+
+### 1. CRITICAL: Ask Before Implementation
+If <95% certain about:
+- Should calendar drag-drop update backend immediately?
+- Should fire-risk zones auto-update or static daily?
+- Should chat messages persist in browser storage?
+- → ASK ME with options before coding
+
+### 2. Code Organization
+- Pages: `app/(routes)/` with descriptive folder names
+- Components: `components/shared/` (reusable) + `components/features/` (page-specific)
+- Hooks: `lib/hooks/useXXX.ts` (custom React hooks)
+- Utils: `lib/utils/formatters.ts`, `lib/utils/mapbox.ts`
+- API client: `lib/api.ts` (React Query setup + fetch functions)
+- Constants: `lib/constants.ts` (colors, API endpoints, routes)
+- Store: `lib/store/index.ts` (Zustand global state)
+
+### 3. Avoid Bloat
+- **DO:** Build dashboard, calendar, map, alerts, chat basics, metrics
+- **DON'T:** Add premium features (advance alerts, predictive analytics)
+- **DON'T:** Add 3rd-party analytics (GA, Mixpanel) until post-MVP
+- **DON'T:** Add animations beyond Framer Motion basics
+
+### 4. Design System
+- Colors: Emerald (#10B981), Sky Blue (#0EA5E9), Amber (#F59E0B), Red (#EF4444), Green (#22C55E)
+- Typography: Inter (headings, body), JetBrains Mono (data)
+- Spacing: 8px units (8, 16, 24, 32, etc.)
+- Border radius: 8px (default), 12px (cards), 16px (large)
+- Shadows: Subtle (0 1px 3px), Medium (0 4px 12px), Large (0 10px 30px)
+
+### 5. Performance
+- Lighthouse target: >80 performance, >95 accessibility
+- Lazy-load images (use next/image)
+- Code-split by route (Next.js automatic)
+- Disable auto-refetch if unnecessary (React Query)
+
+### 6. Coordinate with Agents 1 & 2
+- **Wait for:** API endpoints to stabilize (Agent 1 + 2)
+- **Depend on:** OpenAPI docs at `/api/docs` (for response contracts)
+- **Don't break:** Keep frontend API calls compatible with backend contracts
+
+---
+
+## Git Strategy for This Agent
+
+**Branch:** `feature/frontend-dashboard-agents`
+**Commit Pattern:**
+- `feat(dashboard): create home page with agent cards`
+- `feat(schedule): add irrigation calendar view`
+- `feat(map): integrate mapbox with fire/PSPS layers`
+- `feat(alerts): implement alerts center`
+- `feat(chat): add Agentforce chatbot integration`
+- `feat(metrics): create analytics dashboard`
+- `test(components): add component tests`
+
+**Keep commits small and focused.**
+
+---
+
+## Files You'll Create/Modify
+
+```
+frontend/
+├── app/
+│   ├── layout.tsx (main layout)
+│   ├── page.tsx (dashboard home)
+│   ├── (routes)/
+│   │   ├── schedule/page.tsx
+│   │   ├── map/page.tsx
+│   │   ├── alerts/page.tsx
+│   │   ├── chat/page.tsx
+│   │   ├── metrics/page.tsx
+│   │   └── settings/page.tsx
+│   └── api/
+│       └── chat/route.ts (proxy to backend)
+├── components/
+│   ├── shared/
+│   │   ├── AgentStatusCard.tsx
+│   │   ├── AlertCard.tsx
+│   │   ├── MetricWidget.tsx
+│   │   ├── RecommendationCard.tsx
+│   │   └── ... (other reusables)
+│   ├── layout/
+│   │   ├── Header.tsx
+│   │   ├── Sidebar.tsx
+│   │   ├── MobileNav.tsx
+│   │   └── Footer.tsx
+│   └── features/
+│       ├── dashboard/
+│       ├── irrigation-schedule/
+│       ├── fire-map/
+│       ├── alerts/
+│       ├── chat/
+│       └── metrics/
+├── lib/
+│   ├── api.ts (React Query + fetch)
+│   ├── constants.ts
+│   ├── hooks/
+│   │   ├── useDashboard.ts
+│   │   ├── useRecommendations.ts
+│   │   ├── useAlerts.ts
+│   │   ├── useMetrics.ts
+│   │   └── useChat.ts
+│   ├── utils/
+│   │   ├── formatters.ts
+│   │   └── mapbox.ts
+│   └── store/
+│       └── index.ts (Zustand)
+├── styles/
+│   └── globals.css
+├── __tests__/
+│   ├── components/
+│   ├── pages/
+│   └── hooks/
+├── .env.local
+├── package.json
+├── tsconfig.json
+├── tailwind.config.js
+├── next.config.js
+└── jest.config.js
+```
+
+---
+
+## Success Criteria for Agent 3
+
+- ✅ Dashboard renders all components without crashing
+- ✅ Data flows from backend APIs correctly (no hardcoded data)
+- ✅ Calendar drag-drop functional
+- ✅ Map displays with all layers + toggles
+- ✅ Alerts list displays + filters working
+- ✅ Chat interface sends/receives messages
+- ✅ Metrics dashboard displays data
+- ✅ Mobile responsive (tested at 375px, 768px, 1920px)
+- ✅ Accessibility: keyboard nav + screen reader tested
+- ✅ Component tests pass (60%+ coverage)
+- ✅ Zero TypeScript errors (strict mode)
+- ✅ Conventional commits
+
+---
+
+## Day 1 Priority (Friday)
+1. Project setup: Next.js, Tailwind, React Query
+2. Dashboard home page (layout + hero)
+3. Agent Status Cards component (connect to mock data)
+4. Sidebar navigation (functional routing)
+5. Basic styling (colors, spacing, responsive)
+
+## Day 2 Priority (Saturday)
+1. Dashboard data fetching (React Query from Agent 1 API)
+2. Irrigation calendar basic view
+3. Fire risk map (Mapbox embed + layer controls)
+4. Alerts center (list + filters)
+5. Chat interface (basic UI + send/receive)
+6. Responsive testing (mobile, tablet, desktop)
+7. Component tests
+
+---
+
+## Contact Points with Other Agents
+
+**Agent 1 (Backend Architect):**
+- You depend on their API: `/api/dashboard`, `/api/agents/irrigation/recommend`, `/api/fields`
+- Keep testing Agent 1's endpoints before building UI
+
+**Agent 2 (Data Intelligence):**
+- You depend on their APIs: `/api/alerts`, `/api/metrics/water`, `/api/metrics/fire-risk`
+- Coordinate alert card styling
+
+**All Agents:**
+- Sync on Slack/Discord daily for blockers
+- Share what you've built, what you need from others
+
+---
+
+## Final Notes
+
+You are building the **face** of Growgent. Make it beautiful, fast, and intuitive. Farmers will judge the entire platform based on your UI. Get this right, and the platform is successful.
+
+**Let's build the best agricultural dashboard ever. 🌾📱**

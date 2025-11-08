@@ -28,8 +28,8 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = Field(
-        default="postgresql://postgres:postgres@localhost:5432/growgent",
-        description="PostgreSQL database connection URL",
+        default="postgresql://postgres:postgres@localhost:5433/growgent",
+        description="PostgreSQL database connection URL (port 5433 for Growgent, 5432 for other instances)",
     )
 
     # API Keys - must be set via environment variables

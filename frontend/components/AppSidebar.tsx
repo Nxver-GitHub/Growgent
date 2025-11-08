@@ -59,16 +59,16 @@ export function AppSidebar({
   return (
     <TooltipProvider>
       <div
-        className={`bg-white border-r border-slate-200 h-screen flex flex-col transition-all duration-300 ${
+        className={`hidden md:flex bg-white border-r border-slate-200 h-screen flex-col transition-all duration-300 flex-shrink-0 ${
           collapsed ? "w-20" : "w-64"
         }`}
       >
-        <div className="p-6 border-b border-slate-200">
+        <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-sky-50">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center shrink-0">
-              <Droplet className="h-5 w-5 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-sky-500 rounded-xl flex items-center justify-center shrink-0 shadow-md">
+              <Droplet className="h-6 w-6 text-white" />
             </div>
-            {!collapsed && <h2 className="text-emerald-600">Growgent</h2>}
+            {!collapsed && <h2 className="text-emerald-700 font-bold text-xl">Growgent</h2>}
           </div>
         </div>
 
@@ -81,8 +81,10 @@ export function AppSidebar({
               const button = (
                 <Button
                   variant={isActive ? "secondary" : "ghost"}
-                  className={`w-full ${collapsed ? "justify-center px-2" : "justify-start"} ${
-                    isActive ? "bg-emerald-50 text-emerald-700" : "text-slate-700"
+                  className={`w-full ${collapsed ? "justify-center px-2" : "justify-start"} transition-all duration-200 ${
+                    isActive 
+                      ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md font-semibold" 
+                      : "text-slate-700 hover:bg-emerald-50 hover:text-emerald-700"
                   }`}
                   onClick={() => onNavigate(item.id)}
                 >

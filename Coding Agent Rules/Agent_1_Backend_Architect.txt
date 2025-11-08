@@ -1,0 +1,307 @@
+# AGENT 1: Backend Core Services & Agent Orchestration
+
+## Agent Name: Growgent Backend Architect
+## Primary Responsibility: Fire-Adaptive Irrigation Agent + Backend Infrastructure
+## Focus Area: Fire-adaptive irrigation decision logic, LangGraph orchestration, MCP integration
+## Git Branch: feature/backend-fire-irrigation-agent
+
+---
+
+## Mission Statement
+
+You are responsible for building the **CORE BACKEND INFRASTRUCTURE** and **FIRE-ADAPTIVE IRRIGATION AGENT** of Growgent. Your role is to architect and implement the decision-making engine that recommends irrigation timing and placement to simultaneously protect crops AND reduce wildfire spread potential.
+
+This is the most critical MVP component. Everything else depends on this working correctly.
+
+---
+
+## Your Specific Deliverables for MVP
+
+### 1. FastAPI Server Setup & Database Schema
+**Status:** Foundation Layer
+**Must Complete by Day 1 (Friday):**
+- Initialize FastAPI project with async support
+- Configure PostgreSQL connection (Docker)
+- Create SQLAlchemy models:
+  - `Field` (id, farm_id, crop_type, area_hectares, location_geom, created_at)
+  - `SensorReading` (sensor_id, field_id, moisture_percent, temperature, ph, timestamp)
+  - `Recommendation` (id, field_id, agent_type, title, reason, confidence, accepted, created_at)
+  - `Alert` (id, field_id, agent_type, severity, message, created_at)
+- Create Pydantic schemas for all models
+- Setup auto-generated OpenAPI docs at `/docs`
+
+**Code Quality Rules:**
+- All models use type hints (no Any)
+- All schemas inherit from BaseModel with field validation
+- Indexes on frequently queried columns (field_id, created_at, agent_type)
+- Use PostGIS for spatial queries (field location + fire zones)
+
+**Ask Me If Unsure:**
+- Should we use SQLAlchemy declarative base or dataclasses?
+- PostgreSQL connection pooling strategy?
+- Should alerts auto-expire or manually acknowledged?
+
+---
+
+### 2. Fire-Adaptive Irrigation Agent (LangGraph)
+**Status:** Core Logic
+**Must Complete by Day 1 (Friday):**
+- Initialize LangGraph agent graph
+- Create agent node: `FireAdaptiveIrrigationAgent`
+- Implement decision logic:
+  ```
+  1. Input: field_id, current_soil_moisture, crop_stage
+  2. Fetch: NOAA fire forecast, utility shutoff prediction, field location
+  3. Calculate: water_need (crop stage + heat stress)
+  4. Evaluate trade-off:
+     - IF fire_risk_high AND soil_moisture_sufficient
+       → DELAY irrigation (reduce fuel moisture paradox)
+     - IF soil_moisture_low OR drought_risk_high
+       → IRRIGATE (protect crop, accept slight fire risk)
+     - IF PSPS_predicted_48h
+       → PRE_IRRIGATE (prepare for shutoff)
+  5. Output: Recommendation (action, timing, zones, confidence, fire_impact, water_saved)
+  ```
+
+**Code Quality Rules:**
+- Agent state fully typed (use Pydantic models)
+- All agent methods return structured output (RecommendationResponse)
+- Confidence score based on data quality + certainty of inputs
+- Logging at debug, info, warning levels
+
+**Implementation Approach:**
+- Start with rule-based logic (no ML for MVP)
+- Use MCP servers for external data (NOAA, utilities)
+- Test with mock data first, then real APIs
+
+**Ask Me If Unsure:**
+- How should we weight fire risk vs. crop health? (50/50? 60/40?)
+- Should pre-PSPS irrigation trigger automatically or require approval?
+- How many hours before PSPS should we pre-irrigate?
+
+---
+
+### 3. MCP Integration Layer
+**Status:** Data Access
+**Must Complete by Friday (with mock data) / Saturday (real APIs):**
+- Create MCP client wrapper (`MCPClient`)
+- Implement 4 MCP servers (Docker containers):
+
+**Server 1: Weather MCP**
+- Wraps OpenWeather API + NOAA Fire & Smoke
+- Returns: forecast (temp, humidity, wind, precipitation), fire risk zones
+- Fallback: Mock JSON data for testing
+
+**Server 2: Utility PSPS MCP**
+- Wraps PG&E/SDG&E/SCE APIs (or mock data)
+- Returns: active shutoffs, predicted shutoffs (date, time, areas)
+- Fallback: CSV with test scenarios
+
+**Server 3: Sensor MCP**
+- Reads IoT sensor data (LoRaWAN or simulated CSV)
+- Returns: soil moisture, temperature, pH per field
+- Fallback: Mock sensor readings incrementing realistically
+
+**Server 4: Fire Risk MCP** (Optional Saturday)
+- Wraps NOAA/Cal Fire APIs
+- Returns: fire risk zones, evacuation areas as GeoJSON
+
+**Code Quality Rules:**
+- All MCP servers respond with JSON-RPC 2.0 format
+- Error handling: graceful fallback to mock data
+- Timeout handling (5s per request, auto-retry)
+- Type hints on all parameters/returns
+
+**Ask Me If Unsure:**
+- Should each MCP server be separate Docker container or combined?
+- How do we handle API rate limits? (caching strategy?)
+- What's the update frequency for weather/fire data? (poll every 6h? 1h?)
+
+---
+
+### 4. API Endpoints (Core MVP Routes)
+**Status:** Integration
+**Must Complete by Saturday:**
+- POST `/api/agents/irrigation/recommend` → Fire-Adaptive Agent recommendation
+- GET `/api/fields` → List all fields with latest sensor readings
+- GET `/api/fields/{field_id}` → Detailed field info + fire risk overlay
+- GET `/api/agents/irrigation/recommendations` → History of irrigation recs
+- POST `/api/recommendations/{rec_id}/accept` → Accept recommendation (trigger irrigation)
+- GET `/api/alerts` → Paginated alert list
+- POST `/api/alerts/{alert_id}/acknowledge` → Mark alert as read
+
+**Response Contracts (All Documented in OpenAPI):**
+```
+POST /api/agents/irrigation/recommend
+Request: { field_id: string }
+Response: {
+  action: "IRRIGATE" | "DELAY" | "MONITOR",
+  timing: ISO8601,
+  zones_affected: string[],
+  reason: string,
+  confidence: 0-1,
+  fire_risk_reduction_percent: number,
+  water_saved_liters: number,
+  psps_alert: boolean
+}
+```
+
+**Code Quality Rules:**
+- All responses wrapped in standard envelope (status, data, errors)
+- Consistent error codes (400, 401, 403, 404, 500)
+- Input validation via Pydantic
+- Async/await for all I/O operations
+- Logging all requests/responses (at info level)
+
+---
+
+### 5. Testing for Backend
+**Status:** Quality Gate
+**Must Complete by Saturday Afternoon:**
+- Unit tests for agent logic (pytest):
+  - Test irrigation decision when fire_risk_high (expect DELAY)
+  - Test irrigation decision when soil_moisture_low (expect IRRIGATE)
+  - Test pre-PSPS irrigation trigger
+  - Test confidence calculation
+  - Test edge cases (missing data, conflicting signals)
+
+- API contract tests:
+  - Test each endpoint returns correct status code
+  - Test response shape matches Pydantic model
+  - Test validation errors (invalid field_id, missing params)
+
+**Coverage Target:** 80%+ for critical paths
+**Run Tests Locally:** `pytest tests/` (all must pass before push)
+
+---
+
+## Development Constraints & Rules
+
+### 1. CRITICAL: Ask Before Implementation
+If you are <95% certain about:
+- Agent decision trade-off weights (fire vs. crop)
+- PSPS trigger timing (how many hours before?)
+- MCP server architecture (separate containers vs. combined?)
+- → ASK ME with 3 specific options before coding
+
+### 2. Code Organization
+- Keep agent logic in `backend/app/agents/irrigation.py`
+- Keep MCP clients in `backend/app/mcp/`
+- Keep models in `backend/app/models/`
+- Keep API routes in `backend/app/api/agents.py`
+- Keep tests in `backend/tests/test_agents/` and `backend/tests/test_api/`
+
+### 3. Avoid Bloat
+- **DO:** Build only MVP components (Fire-Adaptive Agent, core API, MCP layer)
+- **DON'T:** Add Water Efficiency Agent yet (Agent 2 owns that)
+- **DON'T:** Add Agentforce chat integration (Agent 3 owns that)
+- **DON'T:** Add analytics dashboards yet (Agent 3 owns that)
+
+### 4. Database Decisions
+- Use PostgreSQL + PostGIS (spatial queries)
+- All queries async (FastAPI async support)
+- Indexes on: field_id, created_at, agent_type
+- Migrations: Alembic (optional for MVP, use manual schema if time-constrained)
+
+### 5. API First, UI Later
+- Build API endpoints BEFORE frontend calls them
+- OpenAPI docs auto-generate (just add docstrings)
+- Frontend Agent will consume these endpoints
+
+---
+
+## Git Strategy for This Agent
+
+**Branch:** `feature/backend-fire-irrigation-agent`
+**Commit Pattern:**
+- `feat(agent): initialize LangGraph fire-adaptive irrigation agent`
+- `feat(mcp): add weather MCP server wrapper`
+- `feat(api): create /api/agents/irrigation/recommend endpoint`
+- `test(agent): add irrigation decision tests`
+
+**IMPORTANT:** Keep commits small and focused. Each commit should be independently deployable.
+
+---
+
+## Files You'll Create/Modify
+
+```
+backend/
+├── app/
+│   ├── models/
+│   │   ├── field.py
+│   │   ├── recommendation.py
+│   │   └── alert.py
+│   ├── schemas/
+│   │   ├── recommendation.py
+│   │   └── alert.py
+│   ├── agents/
+│   │   ├── __init__.py
+│   │   ├── base.py (base agent class)
+│   │   └── irrigation.py (Fire-Adaptive Irrigation Agent)
+│   ├── mcp/
+│   │   ├── __init__.py
+│   │   ├── client.py (MCP wrapper)
+│   │   ├── weather.py
+│   │   ├── psps.py
+│   │   └── sensor.py
+│   ├── api/
+│   │   ├── agents.py (irrigation endpoints)
+│   │   └── fields.py
+│   └── main.py (FastAPI app initialization + routes)
+├── tests/
+│   ├── test_agents/
+│   │   └── test_irrigation.py
+│   ├── test_api/
+│   │   ├── test_agent_endpoints.py
+│   │   └── test_field_endpoints.py
+│   └── conftest.py (fixtures, mock data)
+├── docker-compose.yml (PostgreSQL + Redis optional)
+└── requirements.txt (FastAPI, SQLAlchemy, Pydantic, langgraph, anthropic, psycopg2)
+```
+
+---
+
+## Success Criteria for Agent 1
+
+- ✅ FastAPI server starts, PostgreSQL connected, /docs accessible
+- ✅ Fire-Adaptive Irrigation Agent makes decisions (rule-based, no errors)
+- ✅ All 4 MCP servers implemented (mock data sufficient for MVP)
+- ✅ Core API endpoints return correct responses (tested with Postman/curl)
+- ✅ Agent tests pass (80%+ coverage)
+- ✅ Zero type errors (full TypeScript-equivalent type safety in Python)
+- ✅ Commits follow conventional format
+- ✅ README updated with setup instructions
+
+---
+
+## Day 1 Priority (Friday)
+1. FastAPI + PostgreSQL setup
+2. Database models created
+3. Fire-Adaptive Irrigation Agent basic logic (rule-based)
+4. MCP weather server (mock data)
+5. One API endpoint: POST /api/agents/irrigation/recommend (working end-to-end)
+
+## Day 2 Priority (Saturday)
+1. Remaining MCP servers (PSPS, Sensor)
+2. Remaining API endpoints
+3. Tests for agent logic
+4. Tests for API contracts
+5. Integration: agent → MCP → API → working flow
+
+---
+
+## Contact Points with Other Agents
+
+**Agent 2 (Water Efficiency):** Will consume your Recommendation model and metrics
+**Agent 3 (Frontend):** Will call your API endpoints
+
+Make sure your API response contracts are clear and tested. Agent 3 depends on them!
+
+---
+
+## Final Reminder
+
+You are building the **brain** of Growgent. Everything else is support. Get this right, and the platform works. This is 95% of the complexity—the other agents are mostly integration + UI.
+
+**Let's build the fire-adaptive irrigation engine. 🔥💧**
