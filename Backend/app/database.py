@@ -4,6 +4,9 @@ Database connection and session management.
 This module sets up SQLAlchemy async engine, session factory, and database
 initialization for PostgreSQL with PostGIS support.
 """
+import os
+from dotenv import load_dotenv
+
 
 import logging
 from typing import AsyncGenerator
@@ -17,7 +20,13 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
 
 from app.config import settings
+print("🧱 settings.database_url =", settings.database_url)
 
+
+# Load environment variables from .env in project root
+load_dotenv()
+
+print("🔧 Loaded DATABASE_URL:", os.getenv("DATABASE_URL"))
 logger = logging.getLogger(__name__)
 
 # Convert postgresql:// to postgresql+asyncpg:// for async support

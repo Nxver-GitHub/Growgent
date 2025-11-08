@@ -1,13 +1,3 @@
-/**
- * AppSidebar component displays the main navigation sidebar.
- *
- * Provides navigation between different pages and shows alert counts.
- * Supports collapsed/expanded states.
- *
- * @component
- * @param {AppSidebarProps} props - Component props
- * @returns {JSX.Element} The application sidebar
- */
 import {
   LayoutDashboard,
   Map,
@@ -20,21 +10,13 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import type { Page } from "../lib/types";
 
 interface AppSidebarProps {
-  /** Current active page */
   currentPage: Page;
-  /** Callback function for page navigation */
   onNavigate: (page: Page) => void;
-  /** Optional count of active alerts */
   alertCount?: number;
-  /** Whether the sidebar is collapsed */
   collapsed?: boolean;
-  /** Callback to toggle sidebar collapse state */
   onToggleCollapse: () => void;
 }
 
@@ -45,100 +27,105 @@ export function AppSidebar({
   collapsed = false,
   onToggleCollapse,
 }: AppSidebarProps): JSX.Element {
-  const menuItems = [
-    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { id: "fields", icon: Map, label: "Fields" },
-    { id: "schedule", icon: Calendar, label: "Irrigation Schedule" },
-    { id: "fire-risk", icon: Flame, label: "Fire Risk" },
-    { id: "metrics", icon: Droplet, label: "Water Metrics" },
-    { id: "alerts", icon: Bell, label: "Alerts", badge: alertCount },
-    { id: "chat", icon: MessageSquare, label: "Chat with Agents" },
-    { id: "settings", icon: Settings, label: "Settings" },
+  const items: Array<{
+    id: Page;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: number;
+  }> = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "fields", label: "Fields", icon: Map },
+    { id: "schedule", label: "Irrigation Schedule", icon: Calendar },
+    { id: "fire-risk", label: "Fire Risk", icon: Flame },
+    { id: "metrics", label: "Water Metrics", icon: Droplet },
+    { id: "alerts", label: "Alerts", icon: Bell, badge: alertCount },
+    { id: "chat", label: "Chat with Agents", icon: MessageSquare },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (
-    <TooltipProvider>
-      <div
-        className={`hidden md:flex bg-white border-r border-slate-200 h-screen flex-col transition-all duration-300 flex-shrink-0 ${
-          collapsed ? "w-20" : "w-64"
-        }`}
-      >
-        <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-sky-50">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-sky-500 rounded-xl flex items-center justify-center shrink-0 shadow-md">
-              <Droplet className="h-6 w-6 text-white" />
-            </div>
-            {!collapsed && <h2 className="text-emerald-700 font-bold text-xl">Growgent</h2>}
+    <aside
+      className={`hidden md:flex h-screen bg-white border-r border-slate-200 flex-col shrink-0 transition-all duration-200 z-50 ${
+        collapsed ? "w-16" : "w-64"
+      }`}
+    >
+
+      {/* header with left logo and centered text */}
+      <div className="h-20 flex items-center justify-center border-b border-slate-200 px-4 pb-4 relative">
+        {/* logo fixed to left */}
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
+          <Droplet className="h-4 w-4 text-white" />
+        </div>
+
+        {/* text centered horizontally */}
+        {!collapsed && (
+          <div className="text-center">
+            <p className="text-sm font-semibold text-emerald-700">Growgent</p>
+            <p className="text-xs text-slate-400">Climate-smart farming</p>
           </div>
-        </div>
-
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentPage === item.id;
-
-              const button = (
-                <Button
-                  variant={isActive ? "secondary" : "ghost"}
-                  className={`w-full ${collapsed ? "justify-center px-2" : "justify-start"} transition-all duration-200 ${
-                    isActive 
-                      ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md font-semibold" 
-                      : "text-slate-700 hover:bg-emerald-50 hover:text-emerald-700"
-                  }`}
-                  onClick={() => onNavigate(item.id)}
-                >
-                  <Icon className={`h-5 w-5 ${collapsed ? "" : "mr-3"} shrink-0`} />
-                  {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
-                  {!collapsed && item.badge && item.badge > 0 && (
-                    <Badge variant="destructive" className="ml-auto rounded-full">
-                      {item.badge}
-                    </Badge>
-                  )}
-                  {collapsed && item.badge && item.badge > 0 && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white">
-                      {item.badge}
-                    </div>
-                  )}
-                </Button>
-              );
-
-              return (
-                <li key={item.id} className="relative">
-                  {collapsed ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>{button}</TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>{item.label}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    button
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        <div className="p-4 border-t border-slate-200">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`w-full ${collapsed ? "justify-center px-2" : "justify-start"} text-slate-600`}
-            onClick={onToggleCollapse}
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <>
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Collapse
-              </>
-            )}
-          </Button>
-        </div>
+        )}
       </div>
-    </TooltipProvider>
+
+      {/* navigation */}
+      <ul className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = currentPage === item.id;
+          return (
+            <li key={item.id} className="relative">
+              <button
+                type="button"
+                onClick={() => onNavigate(item.id)}
+                className={`flex w-full items-center rounded-md ${
+                  collapsed ? "justify-center" : "justify-start"
+                } ${collapsed ? "px-0" : "px-3"} py-2 text-sm transition-colors ${
+                  active
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <Icon
+                  className={`h-5 w-5 flex-shrink-0 ${
+                    !collapsed ? "mr-3" : ""
+                  } ${active ? "text-emerald-600" : "text-slate-500"}`}
+                />
+                {!collapsed && <span className="flex-1">{item.label}</span>}
+
+                {!collapsed && item.badge && item.badge > 0 && (
+                  <span className="ml-auto inline-flex min-w-[1.25rem] h-5 items-center justify-center rounded-full bg-red-500 text-white text-[10px] px-1.5">
+                    {item.badge}
+                  </span>
+                )}
+                {collapsed && item.badge && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 inline-flex w-5 h-5 items-center justify-center rounded-full bg-red-500 text-white text-[10px]">
+                    {item.badge > 9 ? "9+" : item.badge}
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* collapse button */}
+      <div className="border-t border-slate-200 p-3">
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className={`flex w-full items-center rounded-md text-slate-500 hover:bg-slate-50 transition ${
+            collapsed ? "justify-center py-2" : "justify-start gap-2 px-2 py-2"
+          }`}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <>
+              <ChevronLeft className="h-4 w-4" />
+              <span className="text-sm">Collapse</span>
+            </>
+          )}
+        </button>
+      </div>
+    </aside>
   );
 }
