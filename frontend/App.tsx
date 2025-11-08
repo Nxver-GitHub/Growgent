@@ -1,12 +1,4 @@
-/**
- * Main application component for Growgent.
- *
- * Manages the overall application layout, navigation state, and page routing.
- * Provides the main container for all application pages and components.
- *
- * @component
- * @returns {JSX.Element} The main application layout
- */
+// src/App.tsx
 import { useState, useCallback, useMemo } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/api";
@@ -23,56 +15,37 @@ import { MobileNav } from "./components/layout/MobileNav";
 import { Toaster } from "./components/ui/sonner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useCriticalAlerts } from "./lib/hooks/useAlerts";
+import type { Page } from "./lib/types";
 
-type Page =
-  | "dashboard"
-  | "schedule"
-  | "fields"
-  | "fire-risk"
-  | "metrics"
-  | "alerts"
-  | "chat"
-  | "settings";
-
-/**
- * Inner app component that uses React Query hooks.
- * Must be inside QueryClientProvider.
- */
 function AppContent(): JSX.Element {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
-  
-  // Fetch alert count from API (with error handling)
-  const { data: criticalAlertsData, error: alertsError } = useCriticalAlerts({ limit: 100 });
-  
-  // Memoize alert count to prevent unnecessary re-renders
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // same API-driven alert count you added
+  const { data: criticalAlertsData, error: alertsError } = useCriticalAlerts({
+    limit: 100,
+  });
+
   const alertCount = useMemo(() => {
-    if (alertsError) {
-      // Only log error once, not on every render
-      if (process.env.NODE_ENV === "development") {
-        console.warn("⚠️ Failed to fetch alerts count:", alertsError);
-      }
-      return 0;
-    }
-    return criticalAlertsData?.count || criticalAlertsData?.alerts?.length || 0;
+    if (alertsError) return 0;
+    return (
+      criticalAlertsData?.count || criticalAlertsData?.alerts?.length || 0
+    );
   }, [criticalAlertsData, alertsError]);
 
-  /**
-   * Handles dismissing an alert (alert count is now dynamic from API).
-   */
-  const handleDismissAlert = useCallback((): void => {
-    // Alert count is now fetched from API, no need to manage state
+  const handleDismissAlert = useCallback(() => {
+    // server-driven now, so nothing to do
   }, []);
 
-  /**
-   * Renders the appropriate page component based on current navigation state.
-   *
-   * @returns {JSX.Element} The page component to render
-   */
-  const renderPage = (): JSX.Element => {
+  const renderPage = () => {
     switch (currentPage) {
       case "dashboard":
-        return <Dashboard onNavigate={setCurrentPage} onDismissAlert={handleDismissAlert} />;
+        return (
+          <Dashboard
+            onNavigate={setCurrentPage}
+            onDismissAlert={handleDismissAlert}
+          />
+        );
       case "schedule":
         return <IrrigationSchedule />;
       case "fields":
@@ -87,7 +60,12 @@ function AppContent(): JSX.Element {
       case "settings":
         return <Settings />;
       default:
-        return <Dashboard onNavigate={setCurrentPage} onDismissAlert={handleDismissAlert} />;
+        return (
+          <Dashboard
+            onNavigate={setCurrentPage}
+            onDismissAlert={handleDismissAlert}
+          />
+        );
     }
   };
 
@@ -110,13 +88,12 @@ function AppContent(): JSX.Element {
           sidebarCollapsed={sidebarCollapsed}
         />
 
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-20 md:pb-8 relative z-0 bg-slate-50">
-            <ErrorBoundary>
-              <div className="max-w-7xl mx-auto w-full">{renderPage()}</div>
-            </ErrorBoundary>
-          </main>
+        <main className="flex-1 overflow-y-auto p-8 bg-slate-50">
+          <div className="max-w-7xl mx-auto w-full">{renderPage()}</div>
+        </main>
       </div>
 
+      {/* mobile bottom bar */}
       <MobileNav
         currentPage={currentPage}
         onNavigate={(page: Page) => setCurrentPage(page)}
@@ -128,9 +105,6 @@ function AppContent(): JSX.Element {
   );
 }
 
-/**
- * Main App component with providers.
- */
 export default function App(): JSX.Element {
   return (
     <ErrorBoundary>
