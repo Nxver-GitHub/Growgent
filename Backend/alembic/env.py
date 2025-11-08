@@ -20,6 +20,13 @@ from app.models.field import Field
 from app.models.sensor_reading import SensorReading
 from app.models.recommendation import Recommendation
 from app.models.alert import Alert
+from app.models.farm import Farm # Added
+from app.models.user import User # Added
+from app.models.user_preferences import UserPreferences # Added
+from app.models.chat_message import ChatMessage # Added
+from app.models.zone import Zone # Added
+from app.models.fire_perimeter import FirePerimeter # Added
+from app.models.psps_event import PspsEvent # Added
 
 # Import Base from database
 from app.database import Base
