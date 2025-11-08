@@ -50,21 +50,31 @@ export function AppSidebar({
       }`}
     >
 
-      {/* header with left logo and centered text */}
-      <div className="h-20 flex items-center justify-center border-b border-slate-200 px-4 pb-4 relative">
+    <div className="border-b border-slate-200 px-4 mb-5 relative">
+      {/* inner flex with full height for spacing */}
+      <div className="h-28 flex flex-col items-center justify-center">
         {/* logo fixed to left */}
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
-          <Droplet className="h-4 w-4 text-white" />
+        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
+            <Droplet className="h-4 w-4 text-white" />
+          </div>
         </div>
 
-        {/* text centered horizontally */}
+        {/* title */}
         {!collapsed && (
-          <div className="text-center">
-            <p className="text-sm font-semibold text-emerald-700">Growgent</p>
-            <p className="text-xs text-slate-400">Climate-smart farming</p>
+          <div className="text-center mt-4 ml-2">
+            <p className="text-med font-semibold text-emerald-700 leading-tight ml-2">
+              Growgent
+            </p>
+            <p className="text-sm text-slate-400 leading-tight  ml-2">
+              Climate-smart farming
+            </p>
+            <div className="h-8 mb-5 bg-transparent" />
           </div>
         )}
       </div>
+    </div>
+
 
       {/* navigation */}
       <ul className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
