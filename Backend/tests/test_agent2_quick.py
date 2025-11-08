@@ -138,3 +138,4 @@ async def test_alert_service_basic(db_session: AsyncSession, sample_field: Field
     print(f"✅ Alert Service: Created and retrieved alert {alert.id}")
 
 
+

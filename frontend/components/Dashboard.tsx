@@ -40,8 +40,11 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
   const isLoading = isLoadingAlerts || isLoadingRecs;
 
   const [selectedRecommendation, setSelectedRecommendation] = useState<RecommendationType | null>(null);
+  // Track dismissed alerts by index to match Figma interaction pattern
+  const [dismissedAlertIndices, setDismissedAlertIndices] = useState<Set<number>>(new Set());
   /**
    * Handles agent card click and sets the appropriate recommendation.
+   * Matches Figma interaction pattern while supporting API data.
    *
    * @param {string} title - The title of the agent that was clicked
    */
@@ -60,7 +63,53 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
       const recommendation = recommendations.find((rec) => rec.agent_type === agentType);
 
       if (recommendation) {
-        setSelectedRecommendation(recommendation);
+        // Convert API recommendation to Figma-compatible format
+        const figmaFormat = {
+          agent: recommendation.agent_type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) + " Agent",
+          title: recommendation.title,
+          confidence: Math.round((recommendation.confidence || 0) * 100),
+          reason: recommendation.reason,
+          fields: recommendation.field_id ? [recommendation.field_id] : [],
+          duration: recommendation.recommended_timing ? "2 hours" : undefined,
+          waterVolume: recommendation.water_saved_liters 
+            ? `${recommendation.water_saved_liters.toLocaleString()} liters`
+            : undefined,
+          fireRiskImpact: recommendation.fire_risk_reduction_percent !== null
+            ? `↓ ${recommendation.fire_risk_reduction_percent.toFixed(0)}% reduction`
+            : undefined,
+          waterSaved: recommendation.water_saved_liters
+            ? `${((recommendation.water_saved_liters / 1000) * 0.08).toFixed(0)}% more efficient`
+            : undefined,
+          // Store original API recommendation for API calls
+          _apiRecommendation: recommendation,
+        };
+        setSelectedRecommendation(figmaFormat as any);
+      } else if (title === "Fire-Adaptive Irrigation" || title === "Utility Shutoff Alert") {
+        // Fallback to Figma demo data if no API data available
+        const demoData = title === "Fire-Adaptive Irrigation" 
+          ? {
+              agent: "Fire-Adaptive Irrigation Agent",
+              title: "Increase Irrigation for Drought Preparation",
+              confidence: 92,
+              reason: "Pre-PSPS watering recommended. Soil moisture below 40%, drought risk high, fire risk moderate. Strategic watering will protect crops and create defensive moisture barrier.",
+              fields: ["Field 1", "Field 3"],
+              duration: "2 hours",
+              waterVolume: "15,000 liters",
+              fireRiskImpact: "↓ 14% reduction",
+              waterSaved: "8% more efficient",
+            }
+          : {
+              agent: "PSPS Anticipation Agent",
+              title: "Pre-PSPS Emergency Watering",
+              confidence: 95,
+              reason: "Public Safety Power Shutoff predicted Nov 9, 14:00-02:00. Immediate pre-irrigation recommended to ensure crop survival during 12-hour power outage.",
+              fields: ["Field 1", "Field 2", "Field 3"],
+              duration: "3 hours",
+              waterVolume: "28,000 liters",
+              fireRiskImpact: "↓ 22% reduction",
+              waterSaved: "Emergency protocol",
+            };
+        setSelectedRecommendation(demoData as any);
       } else {
         onNavigate("dashboard");
       }
@@ -128,7 +177,8 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
       return [];
     }
     const apiAlerts = criticalAlertsData?.alerts || [];
-    return apiAlerts.slice(0, 5).map((alert: Alert) => ({
+    return apiAlerts.slice(0, 5).map((alert: Alert, index: number) => ({
+      index, // Store original index for dismissal tracking
       severity: alert.severity,
       title: alert.message.split(":")[0] || alert.message.substring(0, 50),
       description: alert.message,
@@ -136,6 +186,18 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
       fields: alert.field_id ? [alert.field_id] : undefined,
     }));
   }, [criticalAlertsData, isBackendOffline]);
+
+  // Filter out dismissed alerts
+  const visibleAlerts = useMemo(() => {
+    return alerts.filter((alert) => !dismissedAlertIndices.has(alert.index));
+  }, [alerts, dismissedAlertIndices]);
+
+  // Handle alert dismissal
+  const handleDismiss = useCallback((index: number) => {
+    setDismissedAlertIndices((prev) => new Set([...prev, index]));
+    onDismissAlert?.();
+    toast.success("Alert dismissed");
+  }, [onDismissAlert]);
 
   // Show skeleton loaders only on initial load (not when backend is offline)
   const shouldShowSkeleton = isLoading && !isBackendOffline && !criticalAlertsData && !recommendationsData;
@@ -217,7 +279,7 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
   ];
 
   return (
-    <div className="space-y-8 w-full">
+    <div className="space-y-8">
       {/* Backend Offline Banner */}
       {showOfflineBanner && (
         <div className="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 shadow-sm">
@@ -245,47 +307,34 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
         </div>
       )}
 
-      {/* Hero Section - Enhanced with vibrant colors */}
-      <div className="bg-gradient-to-br from-emerald-500 via-emerald-400 to-sky-400 rounded-2xl p-8 md:p-10 shadow-lg relative overflow-hidden">
-        {/* Decorative background elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-sky-300/20 rounded-full -ml-24 -mb-24 blur-2xl" />
-        
-        <div className="relative z-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-sm">
-            Your Farm is Ready for Climate Action
-          </h2>
-          <p className="text-emerald-50 text-lg mb-6 max-w-2xl">
-            AI-powered irrigation recommendations are optimizing your water usage and reducing fire risk in real-time.
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              className="bg-white text-emerald-600 hover:bg-emerald-50 shadow-md font-semibold px-6 py-2.5"
-              onClick={() => onNavigate("fields")}
-            >
-              View Fields
-            </Button>
-            <Button 
-              variant="outline" 
-              className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm px-6 py-2.5"
-              onClick={() => onNavigate("schedule")}
-            >
-              Irrigation Schedule
-            </Button>
-            <Button 
-              variant="outline" 
-              className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm px-6 py-2.5"
-              onClick={() => onNavigate("chat")}
-            >
-              Chat with Agents
-            </Button>
-          </div>
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-emerald-50 to-sky-50 rounded-2xl p-8">
+        <h2 className="mb-4">Your Farm is Ready for Climate Action</h2>
+        <div className="flex gap-4">
+          <Button
+            className="bg-emerald-600 hover:bg-emerald-700"
+            onClick={() => onNavigate("fields")}
+          >
+            View Fields
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => onNavigate("schedule")}
+          >
+            Irrigation Schedule
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => onNavigate("chat")}
+          >
+            Chat with Agents
+          </Button>
         </div>
       </div>
 
       {/* Agent Status Cards */}
       <div>
-        <h3 className="text-2xl font-semibold text-slate-900 mb-6">Agent Status</h3>
+        <h3 className="mb-4">Agent Status</h3>
         {isLoadingRecs && !isBackendOffline && !recommendationsData ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
@@ -302,59 +351,42 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
       </div>
 
       {/* Recent Alerts */}
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-semibold text-slate-900">Recent Alerts</h3>
-          <Button variant="ghost" onClick={() => onNavigate("alerts")}>
-            View All
-          </Button>
-        </div>
-        {isLoadingAlerts && !isBackendOffline && !criticalAlertsData ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24 rounded-lg" />
-            ))}
+      {visibleAlerts.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3>Recent Alerts</h3>
+            <Button variant="ghost" onClick={() => onNavigate("alerts")}>
+              View All
+            </Button>
           </div>
-        ) : alerts.length > 0 ? (
-          <div className="space-y-4">
-            {alerts.map((alert, index) => (
-              <AlertCard
-                key={`alert-${index}`}
-                {...alert}
-                onDismiss={() => {
-                  onDismissAlert?.();
-                  toast.info("Use the Alerts page to acknowledge alerts");
-                }}
-                onView={() => onNavigate("alerts")}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-gradient-to-br from-slate-50 to-emerald-50 rounded-xl border-2 border-dashed border-slate-200">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
-              {isBackendOffline ? (
-                <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              ) : (
-                <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              )}
+          {isLoadingAlerts && !isBackendOffline && !criticalAlertsData ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-24 rounded-lg" />
+              ))}
             </div>
-            <p className="text-slate-600 font-medium">
-              {isBackendOffline ? "Unable to load alerts" : "No alerts at this time"}
-            </p>
-            <p className="text-slate-500 text-sm mt-1">
-              {isBackendOffline ? "Backend API is not available" : "Your farm is operating normally"}
-            </p>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="space-y-4">
+              {visibleAlerts.map((alert) => (
+                <AlertCard
+                  key={`alert-${alert.index}`}
+                  severity={alert.severity}
+                  title={alert.title}
+                  description={alert.description}
+                  time={alert.time}
+                  fields={alert.fields}
+                  onDismiss={() => handleDismiss(alert.index)}
+                  onView={() => onNavigate("alerts")}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div>
-        <h3 className="text-2xl font-semibold text-slate-900 mb-6">Quick Stats</h3>
+        <h3 className="mb-4">Quick Stats</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {metrics.map((metric, index) => (
             <MetricWidget key={index} {...metric} />

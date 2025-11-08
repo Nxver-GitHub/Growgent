@@ -45,48 +45,33 @@ export function AgentStatusCard({
     error: "bg-red-500",
   };
 
-  // Color schemes for different agent types
-  const getIconBgColor = (title: string): string => {
-    if (title.includes("Fire")) return "bg-gradient-to-br from-orange-100 to-red-100";
-    if (title.includes("Water")) return "bg-gradient-to-br from-blue-100 to-cyan-100";
-    if (title.includes("Shutoff")) return "bg-gradient-to-br from-amber-100 to-yellow-100";
-    return "bg-gradient-to-br from-emerald-100 to-green-100";
-  };
-
-  const getIconColor = (title: string): string => {
-    if (title.includes("Fire")) return "text-orange-600";
-    if (title.includes("Water")) return "text-blue-600";
-    if (title.includes("Shutoff")) return "text-amber-600";
-    return "text-emerald-600";
-  };
-
   return (
     <Card
-      className="p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer border-2 border-slate-200 hover:border-emerald-300 bg-white"
+      className="p-6 hover:shadow-lg transition-all duration-200 hover:-translate-y-1 cursor-pointer border-slate-200"
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`p-3 ${getIconBgColor(title)} rounded-xl shadow-sm`}>
-            <Icon className={`h-6 w-6 ${getIconColor(title)}`} />
+          <div className="p-3 bg-emerald-50 rounded-lg">
+            <Icon className="h-6 w-6 text-emerald-600" />
           </div>
-          <div className={`w-3 h-3 rounded-full ${statusColors[status]} shadow-sm`} />
+          <div className={`w-3 h-3 rounded-full ${statusColors[status]}`} />
         </div>
         {alertCount && alertCount > 0 && (
-          <Badge variant="destructive" className="rounded-full bg-red-500 text-white shadow-sm">
+          <Badge variant="destructive" className="rounded-full">
             {alertCount}
           </Badge>
         )}
       </div>
-
-      <h3 className="text-lg font-semibold text-slate-900 mb-2">{title}</h3>
-
-      <p className="text-slate-700 mb-4 font-medium">{metric}</p>
-
-      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-        <span className="text-sm text-slate-500">{lastUpdate}</span>
-        <Button variant="ghost" size="sm" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
-          View Details →
+      
+      <h3 className="mb-2">{title}</h3>
+      
+      <p className="text-slate-600 mb-4">{metric}</p>
+      
+      <div className="flex items-center justify-between">
+        <span className="text-slate-500">{lastUpdate}</span>
+        <Button variant="ghost" size="sm" className="text-emerald-600">
+          View Details
         </Button>
       </div>
     </Card>

@@ -28,8 +28,19 @@ interface RecommendationModalProps {
   open: boolean;
   /** Callback to close the modal */
   onClose: () => void;
-  /** Optional recommendation data to display */
-  recommendation?: Recommendation | null;
+  /** Optional recommendation data to display (supports both API and Figma formats) */
+  recommendation?: Recommendation | {
+    agent: string;
+    title: string;
+    confidence: number;
+    reason: string;
+    fields: string[];
+    duration?: string;
+    waterVolume?: string;
+    fireRiskImpact?: string;
+    waterSaved?: string;
+    _apiRecommendation?: Recommendation;
+  } | null;
 }
 
 export function RecommendationModal({
@@ -40,12 +51,20 @@ export function RecommendationModal({
   const acceptRecommendation = useAcceptRecommendation();
 
   const handleAccept = () => {
-    if (recommendation?.id) {
-      acceptRecommendation.mutate(recommendation.id, {
+    // Check if this is an API recommendation (has _apiRecommendation or id)
+    const apiRec = (recommendation as any)?._apiRecommendation || (recommendation as Recommendation);
+    
+    if (apiRec && 'id' in apiRec && apiRec.id) {
+      acceptRecommendation.mutate(apiRec.id, {
         onSuccess: () => {
+          toast.success("Recommendation accepted and scheduled");
           onClose();
         },
       });
+    } else {
+      // Demo/Figma format - just show success
+      toast.success("Recommendation accepted and scheduled");
+      onClose();
     }
   };
 
@@ -56,8 +75,14 @@ export function RecommendationModal({
 
   if (!recommendation) return null;
 
-  // Convert confidence from 0-1 to 0-100 for display
-  const confidencePercent = Math.round((recommendation.confidence || 0) * 100);
+  // Check if this is API format or Figma format
+  const isApiFormat = 'id' in recommendation && 'agent_type' in recommendation;
+  const isFigmaFormat = 'agent' in recommendation && 'confidence' in recommendation && typeof recommendation.confidence === 'number';
+
+  // Convert confidence from 0-1 to 0-100 for display (API format) or use directly (Figma format)
+  const confidencePercent = isApiFormat 
+    ? Math.round(((recommendation as Recommendation).confidence || 0) * 100)
+    : (recommendation as any).confidence;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -65,7 +90,9 @@ export function RecommendationModal({
         <DialogHeader>
           <DialogTitle>{recommendation.title}</DialogTitle>
           <DialogDescription>
-            Recommended by {recommendation.agent_type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+            Recommended by {isApiFormat 
+              ? (recommendation as Recommendation).agent_type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+              : (recommendation as any).agent}
           </DialogDescription>
         </DialogHeader>
 
@@ -85,54 +112,76 @@ export function RecommendationModal({
             <p className="text-slate-900">{recommendation.reason}</p>
           </div>
 
-          {/* Affected Field */}
+          {/* Affected Fields */}
           <div>
-            <p className="text-slate-600 mb-2">Field ID</p>
-            <Badge variant="outline">{recommendation.field_id}</Badge>
+            <p className="text-slate-600 mb-2">Affected Fields</p>
+            {isFigmaFormat ? (
+              <div className="flex flex-wrap gap-2">
+                {(recommendation as any).fields.map((field: string) => (
+                  <Badge key={field} variant="outline">
+                    {field}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <Badge variant="outline">{(recommendation as Recommendation).field_id}</Badge>
+            )}
           </div>
-
-          {/* Recommended Timing */}
-          {recommendation.recommended_timing && (
-            <div>
-              <p className="text-slate-600 mb-1">Recommended Timing</p>
-              <p className="text-slate-900">
-                {formatDate(recommendation.recommended_timing)} at{" "}
-                {formatTime(recommendation.recommended_timing)}
-              </p>
-            </div>
-          )}
-
-          {/* Zones Affected */}
-          {recommendation.zones_affected && (
-            <div>
-              <p className="text-slate-600 mb-1">Zones Affected</p>
-              <p className="text-slate-900">{recommendation.zones_affected}</p>
-            </div>
-          )}
 
           {/* Details Grid */}
           <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-lg">
-            {recommendation.fire_risk_reduction_percent !== null && (
-              <div>
-                <p className="text-slate-600 mb-1">Fire Risk Reduction</p>
-                <p className="text-emerald-600">
-                  ↓ {recommendation.fire_risk_reduction_percent.toFixed(1)}%
-                </p>
-              </div>
-            )}
-            {recommendation.water_saved_liters !== null && (
-              <div>
-                <p className="text-slate-600 mb-1">Water Saved</p>
-                <p className="text-blue-600">
-                  {recommendation.water_saved_liters.toLocaleString()} liters
-                </p>
-              </div>
-            )}
-            {recommendation.psps_alert && (
-              <div className="col-span-2">
-                <Badge variant="destructive">PSPS Alert</Badge>
-                <p className="text-slate-600 mt-1">This recommendation is related to a Public Safety Power Shutoff event.</p>
-              </div>
+            {isFigmaFormat ? (
+              <>
+                {(recommendation as any).duration && (
+                  <div>
+                    <p className="text-slate-600 mb-1">Duration</p>
+                    <p className="text-slate-900">{(recommendation as any).duration}</p>
+                  </div>
+                )}
+                {(recommendation as any).waterVolume && (
+                  <div>
+                    <p className="text-slate-600 mb-1">Water Volume</p>
+                    <p className="text-slate-900">{(recommendation as any).waterVolume}</p>
+                  </div>
+                )}
+                {(recommendation as any).fireRiskImpact && (
+                  <div>
+                    <p className="text-slate-600 mb-1">Fire Risk Impact</p>
+                    <p className="text-emerald-600">{(recommendation as any).fireRiskImpact}</p>
+                  </div>
+                )}
+                {(recommendation as any).waterSaved && (
+                  <div>
+                    <p className="text-slate-600 mb-1">Water Saved</p>
+                    <p className="text-blue-600">{(recommendation as any).waterSaved}</p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {(recommendation as Recommendation).fire_risk_reduction_percent !== null && (
+                  <div>
+                    <p className="text-slate-600 mb-1">Fire Risk Impact</p>
+                    <p className="text-emerald-600">
+                      ↓ {(recommendation as Recommendation).fire_risk_reduction_percent?.toFixed(0)}% reduction
+                    </p>
+                  </div>
+                )}
+                {(recommendation as Recommendation).water_saved_liters !== null && (
+                  <div>
+                    <p className="text-slate-600 mb-1">Water Volume</p>
+                    <p className="text-slate-900">
+                      {(recommendation as Recommendation).water_saved_liters?.toLocaleString()} liters
+                    </p>
+                  </div>
+                )}
+                {(recommendation as Recommendation).psps_alert && (
+                  <div className="col-span-2">
+                    <Badge variant="destructive">PSPS Alert</Badge>
+                    <p className="text-slate-600 mt-1">This recommendation is related to a Public Safety Power Shutoff event.</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

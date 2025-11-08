@@ -71,45 +71,46 @@ export function AlertCard({
   const Icon = config.icon;
 
   return (
-    <Card className={`p-5 border-l-4 ${config.borderColor} ${config.bgColor} shadow-sm hover:shadow-md transition-all duration-200`}>
-      <div className="flex items-start gap-4">
-        <div className={`p-2 ${config.bgColor} rounded-lg border-2 ${config.borderColor.replace('border-l-', 'border-')} flex-shrink-0`}>
-          <Icon className={`h-5 w-5 ${config.color}`} />
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
-            <h4 className={`font-semibold ${config.color} text-base`}>{title}</h4>
-            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-              <span className="text-xs text-slate-500 font-medium">{time}</span>
+    <Card className={`p-4 border-l-4 ${config.borderColor} ${config.bgColor}`}>
+      <div className="flex items-start gap-3">
+        <Icon className={`h-5 w-5 mt-0.5 ${config.color}`} />
+        
+        <div className="flex-1">
+          <div className="flex items-start justify-between mb-1">
+            <h4 className={config.color}>{title}</h4>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500">{time}</span>
               {onDismiss && (
-                <Button variant="ghost" size="sm" onClick={onDismiss} className="h-7 w-7 p-0 hover:bg-red-100 hover:text-red-600">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onDismiss}
+                  className="h-6 w-6 p-0"
+                >
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
           </div>
-
-          <p className="text-slate-700 mb-3 leading-relaxed">{description}</p>
-
+          
+          <p className="text-slate-700 mb-2">{description}</p>
+          
           {fields && fields.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
               {fields.map((field) => (
-                <span key={field} className="px-3 py-1 bg-white border border-slate-200 rounded-md text-sm font-medium text-slate-700 shadow-sm">
+                <span
+                  key={field}
+                  className="px-2 py-1 bg-white rounded text-slate-700"
+                >
                   {field}
                 </span>
               ))}
             </div>
           )}
-
+          
           {onView && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onView}
-              className={`${config.color} font-medium border-current hover:${config.bgColor}`}
-            >
-              View Details →
+            <Button variant="outline" size="sm" onClick={onView}>
+              View Details
             </Button>
           )}
         </div>
