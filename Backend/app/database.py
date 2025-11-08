@@ -21,9 +21,9 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 # Convert postgresql:// to postgresql+asyncpg:// for async support
-database_url = settings.database_url.replace(
-    "postgresql://", "postgresql+asyncpg://", 1
-)
+database_url = settings.database_url
+
+# .replace("postgresql://", "postgresql+asyncpg://", 1)
 
 # Create async engine
 # NullPool for development; use connection pooling in production
@@ -95,4 +95,3 @@ async def close_db() -> None:
     """
     await engine.dispose()
     logger.info("Database connections closed")
-
