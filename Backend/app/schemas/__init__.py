@@ -78,6 +78,17 @@ from app.schemas.user_preferences import (
     UserPreferencesUpdate,
     UserPreferencesResponse,
 )
+from app.schemas.fire_perimeter import ( # Added
+    FirePerimeterBase, # Added
+    FirePerimeterCreate, # Added
+    FirePerimeter, # Added
+) # Added
+from app.schemas.psps_event import ( # Added
+    PspsEventBase, # Added
+    PspsEventCreate, # Added
+    PspsEventResponse, # Added
+    PspsEventListResponse, # Added
+) # Added
 
 __all__ = [
     # Field schemas
@@ -146,4 +157,13 @@ __all__ = [
     "UserPreferencesCreate",
     "UserPreferencesUpdate",
     "UserPreferencesResponse",
+    # Fire Perimeter schemas # Added
+    "FirePerimeterBase", # Added
+    "FirePerimeterCreate", # Added
+    "FirePerimeter", # Added
+    # PSPS Event schemas # Added
+    "PspsEventBase", # Added
+    "PspsEventCreate", # Added
+    "PspsEventResponse", # Added
+    "PspsEventListResponse", # Added
 ]

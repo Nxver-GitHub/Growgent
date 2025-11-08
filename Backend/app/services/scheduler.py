@@ -22,6 +22,8 @@ from app.agents.water_efficiency import WaterEfficiencyAgent, WaterEfficiencyAge
 from app.models.field import Field
 from app.services.field import FieldService
 from app.services.alert import AlertService
+from app.services.psps_event_service import sync_psps_events # Added
+from app.services.fire_perimeter_service import sync_fire_perimeters # Added
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +36,8 @@ class AgentScheduler:
     - Irrigation agent (checks all fields periodically)
     - PSPS agent (monitors shutoffs every 30 minutes)
     - Water efficiency agent (calculates metrics periodically)
+    - PSPS event synchronization (fetches latest PSPS data)
+    - Fire perimeter synchronization (fetches latest fire data)
     """
 
     def __init__(self) -> None:
@@ -79,12 +83,32 @@ class AgentScheduler:
             replace_existing=True,
         )
 
+        # Schedule PSPS event synchronization - Every 5 minutes (as per DATA_PLAN.md)
+        self.scheduler.add_job(
+            self._run_psps_sync_job,
+            trigger=IntervalTrigger(minutes=5),
+            id="psps_sync_job",
+            name="PSPS Event Synchronization",
+            replace_existing=True,
+        )
+
+        # Schedule Fire perimeter synchronization - Every 10 minutes (as per DATA_PLAN.md)
+        self.scheduler.add_job(
+            self._run_fire_perimeter_sync_job,
+            trigger=IntervalTrigger(minutes=10),
+            id="fire_perimeter_sync_job",
+            name="Fire Perimeter Synchronization",
+            replace_existing=True,
+        )
+
         self.scheduler.start()
         self._is_running = True
         logger.info("Agent scheduler started successfully")
         logger.info("  - Irrigation Agent: Every 6 hours")
         logger.info("  - PSPS Agent: Every 30 minutes")
         logger.info("  - Water Efficiency Agent: Every 4 hours")
+        logger.info("  - PSPS Event Sync: Every 5 minutes")
+        logger.info("  - Fire Perimeter Sync: Every 10 minutes")
 
     async def stop(self) -> None:
         """Stop the scheduler."""
@@ -271,6 +295,33 @@ class AgentScheduler:
         logger.info(f"Manually triggering job: {job_id}")
         job.modify(next_run_time=datetime.now())
         return True
+
+
+    async def _run_psps_sync_job(self) -> None:
+        """
+        Run PSPS event synchronization job.
+        """
+        logger.info("Running PSPS event synchronization job...")
+        async for db in get_db():
+            try:
+                await sync_psps_events(db)
+            except Exception as e:
+                logger.error(f"Error in PSPS event sync job: {e}", exc_info=True)
+            finally:
+                break
+
+    async def _run_fire_perimeter_sync_job(self) -> None:
+        """
+        Run Fire perimeter synchronization job.
+        """
+        logger.info("Running Fire perimeter synchronization job...")
+        async for db in get_db():
+            try:
+                await sync_fire_perimeters(db)
+            except Exception as e:
+                logger.error(f"Error in Fire perimeter sync job: {e}", exc_info=True)
+            finally:
+                break
 
 
 # Global scheduler instance
