@@ -18,7 +18,7 @@ from app.database import init_db, close_db
 from app.config import settings
 
 # Import all models to ensure they're registered with Base.metadata
-from app.models import Field, SensorReading, Recommendation, Alert  # noqa: F401
+from app.models import Field, SensorReading, Recommendation, Alert, Zone, ChatMessage  # noqa: F401
 
 logging.basicConfig(
     level=logging.INFO,

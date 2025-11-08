@@ -63,8 +63,8 @@ export function RecommendationModal({
       });
     } else {
       // Demo/Figma format - just show success
-      toast.success("Recommendation accepted and scheduled");
-      onClose();
+    toast.success("Recommendation accepted and scheduled");
+    onClose();
     }
   };
 
@@ -116,13 +116,13 @@ export function RecommendationModal({
           <div>
             <p className="text-slate-600 mb-2">Affected Fields</p>
             {isFigmaFormat ? (
-              <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
                 {(recommendation as any).fields.map((field: string) => (
-                  <Badge key={field} variant="outline">
-                    {field}
-                  </Badge>
-                ))}
-              </div>
+                <Badge key={field} variant="outline">
+                  {field}
+                </Badge>
+              ))}
+            </div>
             ) : (
               <Badge variant="outline">{(recommendation as Recommendation).field_id}</Badge>
             )}
@@ -133,26 +133,26 @@ export function RecommendationModal({
             {isFigmaFormat ? (
               <>
                 {(recommendation as any).duration && (
-                  <div>
-                    <p className="text-slate-600 mb-1">Duration</p>
+              <div>
+                <p className="text-slate-600 mb-1">Duration</p>
                     <p className="text-slate-900">{(recommendation as any).duration}</p>
-                  </div>
-                )}
+              </div>
+            )}
                 {(recommendation as any).waterVolume && (
-                  <div>
-                    <p className="text-slate-600 mb-1">Water Volume</p>
+              <div>
+                <p className="text-slate-600 mb-1">Water Volume</p>
                     <p className="text-slate-900">{(recommendation as any).waterVolume}</p>
-                  </div>
-                )}
+              </div>
+            )}
                 {(recommendation as any).fireRiskImpact && (
-                  <div>
-                    <p className="text-slate-600 mb-1">Fire Risk Impact</p>
+              <div>
+                <p className="text-slate-600 mb-1">Fire Risk Impact</p>
                     <p className="text-emerald-600">{(recommendation as any).fireRiskImpact}</p>
-                  </div>
-                )}
+              </div>
+            )}
                 {(recommendation as any).waterSaved && (
-                  <div>
-                    <p className="text-slate-600 mb-1">Water Saved</p>
+              <div>
+                <p className="text-slate-600 mb-1">Water Saved</p>
                     <p className="text-blue-600">{(recommendation as any).waterSaved}</p>
                   </div>
                 )}
@@ -179,7 +179,7 @@ export function RecommendationModal({
                   <div className="col-span-2">
                     <Badge variant="destructive">PSPS Alert</Badge>
                     <p className="text-slate-600 mt-1">This recommendation is related to a Public Safety Power Shutoff event.</p>
-                  </div>
+              </div>
                 )}
               </>
             )}

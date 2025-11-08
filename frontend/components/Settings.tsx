@@ -103,7 +103,12 @@ export function Settings(): JSX.Element {
               <Separator />
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline">Cancel</Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => toast.info("Changes discarded")}
+                >
+                  Cancel
+                </Button>
                 <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700">
                   Save Changes
                 </Button>
@@ -149,7 +154,11 @@ export function Settings(): JSX.Element {
                   <Badge variant="outline">Strawberry</Badge>
                   <Badge variant="outline">Lettuce</Badge>
                   <Badge variant="outline">Tomato</Badge>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => toast.info("Add crop functionality coming soon")}
+                  >
                     + Add Crop
                   </Button>
                 </div>
@@ -163,7 +172,12 @@ export function Settings(): JSX.Element {
               <Separator />
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline">Cancel</Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => toast.info("Changes discarded")}
+                >
+                  Cancel
+                </Button>
                 <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700">
                   Save Changes
                 </Button>
@@ -260,7 +274,12 @@ export function Settings(): JSX.Element {
               <Separator />
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline">Cancel</Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => toast.info("Changes discarded")}
+                >
+                  Cancel
+                </Button>
                 <Button onClick={handleSave} className="bg-emerald-600 hover:bg-emerald-700">
                   Save Changes
                 </Button>

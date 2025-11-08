@@ -6,14 +6,21 @@
  * @component
  * @returns {JSX.Element} The fields map view
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
-import { MapPin, Droplet, Thermometer, Activity, ChevronDown, ChevronUp } from "lucide-react";
+import { Droplet, Thermometer, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { MapboxMap } from "./MapboxMap";
+import { AddZoneDialog } from "./AddZoneDialog";
+import { ZoneManagementPanel } from "./ZoneManagementPanel";
+import { useFields, useField } from "../lib/hooks/useFields";
+import { Skeleton } from "./ui/skeleton";
+import { toast } from "sonner";
+import type { Field, RiskZone, ZoneType, ZoneLevel } from "../lib/types";
 
 interface LayerState {
   /** Show satellite imagery layer */
@@ -37,135 +44,314 @@ export function FieldsMap(): JSX.Element {
     psps: true,
   });
   const [layersOpen, setLayersOpen] = useState(true);
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  
+  // Zone management state
+  const [zones, setZones] = useState<RiskZone[]>([]);
+  const [addZoneDialogOpen, setAddZoneDialogOpen] = useState(false);
+  const [editingZone, setEditingZone] = useState<RiskZone | null>(null);
+  const [drawingMode, setDrawingMode] = useState(false);
+  const [drawnGeometry, setDrawnGeometry] = useState<GeoJSON.Feature | null>(null);
+  const [zoneFilters, setZoneFilters] = useState<{
+    types: ZoneType[];
+    levels: ZoneLevel[];
+  }>({
+    types: [],
+    levels: [],
+  });
 
-  const selectedField = {
-    name: "Field 1 North",
-    crop: "Strawberry",
-    area: "12 hectares",
-    ndvi: "0.68",
-    soilMoisture: "45%",
-    sensors: 5,
-    fireRisk: "Low",
-    pspsStatus: "No shutoff predicted",
-  };
+  // Fetch fields data
+  const { data: fieldsData, isLoading: isLoadingFields, error: fieldsError } = useFields();
+  const fields = fieldsData?.fields || [];
+
+  // Fetch selected field details
+  const { data: fieldDetailData, isLoading: isLoadingFieldDetail } = useField(selectedFieldId);
+
+  // Get selected field or first field as default
+  const selectedField = useMemo(() => {
+    if (fieldDetailData?.field) {
+      const field = fieldDetailData.field as Field;
+      const sensorReading = fieldDetailData.latest_sensor_reading;
+      return {
+        name: field.name,
+        crop: field.crop_type,
+        area: `${field.area_hectares} hectares`,
+        ndvi: "0.68", // TODO: Get from sensor reading or NDVI data
+        soilMoisture: sensorReading ? `${sensorReading.moisture_percent}%` : "N/A",
+        sensors: 5, // TODO: Get actual sensor count from API
+        fireRisk: "Low", // TODO: Get from fire_risk_data
+        pspsStatus: "No shutoff predicted", // TODO: Get from PSPS data
+      };
+    }
+    if (fields.length > 0 && !selectedFieldId) {
+      // Auto-select first field if none selected
+      const firstField = fields[0] as Field;
+      return {
+        name: firstField.name,
+        crop: firstField.crop_type,
+        area: `${firstField.area_hectares} hectares`,
+        ndvi: "0.68",
+        soilMoisture: "45%",
+        sensors: 5,
+        fireRisk: "Low",
+        pspsStatus: "No shutoff predicted",
+      };
+    }
+    return null;
+  }, [fieldDetailData, fields, selectedFieldId]);
+
+  // Auto-select first field on load
+  useEffect(() => {
+    if (fields.length > 0 && !selectedFieldId) {
+      const firstField = fields[0] as Field;
+      setSelectedFieldId(firstField.id);
+    }
+  }, [fields, selectedFieldId]);
+
+  const handleFieldSelect = useCallback((fieldId: string) => {
+    setSelectedFieldId(fieldId);
+  }, []);
+
+  const handleCreateZone = useCallback((zoneData: {
+    name: string;
+    type: ZoneType;
+    level: ZoneLevel;
+    geometry: GeoJSON.Feature;
+    description?: string;
+  }) => {
+    const newZone: RiskZone = {
+      id: crypto.randomUUID(),
+      name: zoneData.name,
+      type: zoneData.type,
+      level: zoneData.level,
+      geometry: zoneData.geometry,
+      description: zoneData.description,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    setZones((prev) => [...prev, newZone]);
+    setDrawingMode(false);
+    setDrawnGeometry(null);
+    toast.success(`Zone "${zoneData.name}" created successfully`);
+  }, []);
+
+  const handleUpdateZone = useCallback((zoneId: string, zoneData: {
+    name: string;
+    type: ZoneType;
+    level: ZoneLevel;
+    geometry: GeoJSON.Feature;
+    description?: string;
+  }) => {
+    setZones((prev) =>
+      prev.map((zone) =>
+        zone.id === zoneId
+          ? {
+              ...zone,
+              ...zoneData,
+              updated_at: new Date().toISOString(),
+            }
+          : zone
+      )
+    );
+    setEditingZone(null);
+    setDrawingMode(false);
+    setDrawnGeometry(null);
+    toast.success(`Zone "${zoneData.name}" updated successfully`);
+  }, []);
+
+  const handleDeleteZone = useCallback((zoneId: string) => {
+    setZones((prev) => prev.filter((zone) => zone.id !== zoneId));
+  }, []);
+
+  const handleEditZone = useCallback((zone: RiskZone) => {
+    setEditingZone(zone);
+    setAddZoneDialogOpen(true);
+  }, []);
+
+  // Filter zones based on active filters
+  const filteredZones = useMemo(() => {
+    return zones.filter((zone) => {
+      const typeMatch = zoneFilters.types.length === 0 || zoneFilters.types.includes(zone.type);
+      const levelMatch = zoneFilters.levels.length === 0 || zoneFilters.levels.includes(zone.level);
+      return typeMatch && levelMatch;
+    });
+  }, [zones, zoneFilters]);
+
+  const handleDrawingComplete = useCallback((geometry: GeoJSON.Feature) => {
+    setDrawnGeometry(geometry);
+    setDrawingMode(false);
+    toast.success("Zone boundary drawn. Fill in the details to create the zone.");
+  }, []);
+
+  const handleToggleDrawing = useCallback(() => {
+    setDrawingMode((prev) => !prev);
+    if (drawingMode) {
+      setDrawnGeometry(null);
+    }
+  }, [drawingMode]);
+
+  const handleAddNewZone = useCallback(() => {
+    setEditingZone(null);
+    setDrawnGeometry(null);
+    setAddZoneDialogOpen(true);
+  }, []);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2>Field Map & Risk Zones</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleAddNewZone}
+          >
             Add New Zone
           </Button>
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => toast.info("Sensor management feature coming soon")}
+          >
             Manage Sensors
           </Button>
         </div>
       </div>
 
+      {/* Map Layer Controls - Moved to top */}
+      <Card className="p-4">
+        <Collapsible open={layersOpen} onOpenChange={setLayersOpen}>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-slate-700">Map Layers</h3>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm">
+                {layersOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent className="pt-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="satellite"
+                  checked={layers.satellite}
+                  onCheckedChange={(checked) => setLayers({ ...layers, satellite: checked })}
+                />
+                <Label htmlFor="satellite" className="text-sm">Satellite</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="sensors"
+                  checked={layers.sensors}
+                  onCheckedChange={(checked) => setLayers({ ...layers, sensors: checked })}
+                />
+                <Label htmlFor="sensors" className="text-sm">Sensors</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="ndvi"
+                  checked={layers.ndvi}
+                  onCheckedChange={(checked) => setLayers({ ...layers, ndvi: checked })}
+                />
+                <Label htmlFor="ndvi" className="text-sm">NDVI</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="fireRisk"
+                  checked={layers.fireRisk}
+                  onCheckedChange={(checked) => setLayers({ ...layers, fireRisk: checked })}
+                />
+                <Label htmlFor="fireRisk" className="text-sm">Fire Risk</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="psps"
+                  checked={layers.psps}
+                  onCheckedChange={(checked) => setLayers({ ...layers, psps: checked })}
+                />
+                <Label htmlFor="psps" className="text-sm">PSPS Areas</Label>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Map Area */}
         <div className="lg:col-span-2">
-          <Card className="p-0 overflow-hidden">
-            {/* Map Controls - Collapsible */}
-            <Collapsible
-              open={layersOpen}
-              onOpenChange={setLayersOpen}
-              className="absolute top-4 left-4 z-10"
-            >
-              <div className="bg-white rounded-lg shadow-lg">
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full justify-between p-4">
-                    <span>Map Layers</span>
-                    {layersOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="p-4 pt-0 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="satellite"
-                      checked={layers.satellite}
-                      onCheckedChange={(checked) => setLayers({ ...layers, satellite: checked })}
-                    />
-                    <Label htmlFor="satellite">Satellite Imagery</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="sensors"
-                      checked={layers.sensors}
-                      onCheckedChange={(checked) => setLayers({ ...layers, sensors: checked })}
-                    />
-                    <Label htmlFor="sensors">Sensors</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="ndvi"
-                      checked={layers.ndvi}
-                      onCheckedChange={(checked) => setLayers({ ...layers, ndvi: checked })}
-                    />
-                    <Label htmlFor="ndvi">NDVI Heatmap</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="fireRisk"
-                      checked={layers.fireRisk}
-                      onCheckedChange={(checked) => setLayers({ ...layers, fireRisk: checked })}
-                    />
-                    <Label htmlFor="fireRisk">Fire Risk Zones</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="psps"
-                      checked={layers.psps}
-                      onCheckedChange={(checked) => setLayers({ ...layers, psps: checked })}
-                    />
-                    <Label htmlFor="psps">PSPS Areas</Label>
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
+          <Card className="p-0 overflow-hidden relative">
 
-            {/* Map Placeholder */}
-            <div className="relative h-[600px] bg-gradient-to-br from-emerald-100 to-sky-100 flex items-center justify-center">
-              <div className="text-center space-y-4">
-                <MapPin className="h-16 w-16 text-emerald-600 mx-auto" />
-                <div>
-                  <p className="text-slate-700">Interactive Map View</p>
-                  <p className="text-slate-500">
-                    Mapbox integration displays fields, sensors, and risk zones
-                  </p>
+            {/* Mapbox Map */}
+            <div className="relative h-[600px]">
+              {isLoadingFields ? (
+                <div className="flex items-center justify-center h-full bg-slate-100">
+                  <Skeleton className="w-full h-full" />
                 </div>
-              </div>
-
-              {/* Sample Field Boundaries */}
-              <div className="absolute top-32 left-32 w-48 h-40 border-4 border-emerald-500 rounded-lg bg-emerald-500 bg-opacity-20">
-                <div className="absolute -top-8 left-4">
-                  <Badge className="bg-emerald-600">Field 1</Badge>
+              ) : fieldsError ? (
+                <div className="flex items-center justify-center h-full bg-slate-100">
+                  <div className="text-center p-8">
+                    <p className="text-slate-700 mb-2">Failed to load fields</p>
+                    <p className="text-sm text-slate-500">
+                      {fieldsError instanceof Error ? fieldsError.message : "Unknown error"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-              <div className="absolute top-48 right-48 w-56 h-48 border-4 border-emerald-500 rounded-lg bg-emerald-500 bg-opacity-20">
-                <div className="absolute -top-8 left-4">
-                  <Badge className="bg-emerald-600">Field 2</Badge>
+              ) : fields.length === 0 ? (
+                <div className="flex items-center justify-center h-full bg-slate-100">
+                  <div className="text-center p-8">
+                    <p className="text-slate-700 mb-2">No fields found</p>
+                    <p className="text-sm text-slate-500">Add fields to see them on the map</p>
+                  </div>
                 </div>
-              </div>
-
-              {/* Sample Sensor Markers */}
-              <div className="absolute top-40 left-40 w-6 h-6 bg-blue-500 rounded-full border-2 border-white shadow-lg" />
-              <div className="absolute top-56 left-56 w-6 h-6 bg-blue-500 rounded-full border-2 border-white shadow-lg" />
-              <div className="absolute top-60 right-56 w-6 h-6 bg-blue-500 rounded-full border-2 border-white shadow-lg" />
+                     ) : (
+                       <MapboxMap
+                         fields={fields as Field[]}
+                         selectedFieldId={selectedFieldId}
+                         onFieldSelect={handleFieldSelect}
+                         layers={layers}
+                         customZones={filteredZones.map((zone) => ({
+                           id: zone.id,
+                           name: zone.name,
+                           type: zone.type,
+                           level: zone.level,
+                           geometry: zone.geometry,
+                         }))}
+                         drawingMode={drawingMode}
+                         onDrawingComplete={handleDrawingComplete}
+                       />
+                     )}
             </div>
           </Card>
         </div>
 
         {/* Field Details Sidebar */}
         <div className="space-y-6">
-          <Card className="p-6">
-            <h3 className="mb-4">{selectedField.name}</h3>
+          {/* Zone Management Panel */}
+          <ZoneManagementPanel
+            zones={zones}
+            onEditZone={handleEditZone}
+            onDeleteZone={handleDeleteZone}
+            filters={zoneFilters}
+            onFiltersChange={setZoneFilters}
+          />
+
+          {isLoadingFieldDetail || !selectedField ? (
+            <Card className="p-6">
+              <Skeleton className="h-6 w-32 mb-4" />
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            </Card>
+          ) : (
+            <Card className="p-6">
+              <h3 className="mb-4">{selectedField.name}</h3>
 
             <div className="space-y-4">
               <div>
@@ -216,12 +402,16 @@ export function FieldsMap(): JSX.Element {
             </div>
 
             <div className="mt-6">
-              <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
+              <Button 
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => toast.info("Viewing recommendations for " + selectedField.name)}
+              >
                 View Recommendations
               </Button>
             </div>
-          </Card>
-
+            </Card>
+          )}
+          
           <Card className="p-6">
             <h4 className="mb-4">Recent Activity</h4>
             <div className="space-y-3">
@@ -241,6 +431,24 @@ export function FieldsMap(): JSX.Element {
           </Card>
         </div>
       </div>
+
+      {/* Add/Edit Zone Dialog */}
+      <AddZoneDialog
+        open={addZoneDialogOpen}
+        onOpenChange={(open) => {
+          setAddZoneDialogOpen(open);
+          if (!open) {
+            setEditingZone(null);
+            setDrawnGeometry(null);
+          }
+        }}
+        onCreateZone={handleCreateZone}
+        onUpdateZone={handleUpdateZone}
+        editingZone={editingZone}
+        drawingMode={drawingMode}
+        onToggleDrawing={handleToggleDrawing}
+        drawnGeometry={drawnGeometry}
+      />
     </div>
   );
 }

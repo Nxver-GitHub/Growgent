@@ -340,20 +340,49 @@ export const metricsApi = {
 
 /**
  * Chat API functions.
- * Note: There's no dedicated chat endpoint in the backend yet.
- * This is a placeholder for future Salesforce Agentforce integration.
+ * Connected to Agent 1's `/api/agents/chat` endpoint.
  */
 export const chatApi = {
   /**
    * Send a chat message to the agent.
-   * TODO: Implement when Agent 1 adds chat endpoint.
    *
    * @param message - User message content
-   * @returns Agent response
+   * @param options - Optional chat options
+   * @returns Agent response with message and conversation ID
    */
-  sendMessage: async (message: string) => {
-    // Placeholder - will be implemented when backend chat endpoint is ready
-    throw new Error("Chat endpoint not yet implemented in backend");
+  sendMessage: async (
+    message: string,
+    options?: {
+      conversation_id?: string;
+      field_id?: string;
+      include_context?: boolean;
+    }
+  ) => {
+    const body: {
+      message: string;
+      conversation_id?: string;
+      field_id?: string;
+      include_context?: boolean;
+    } = { message };
+
+    if (options?.conversation_id) body.conversation_id = options.conversation_id;
+    if (options?.field_id) body.field_id = options.field_id;
+    if (options?.include_context !== undefined)
+      body.include_context = options.include_context;
+
+    return apiFetch<{
+      message: string;
+      conversation_id: string;
+      sources?: string[];
+      suggested_actions?: Array<{
+        label: string;
+        action: string;
+        field_id?: string;
+      }>;
+    }>(API_ENDPOINTS.CHAT, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
   },
 };
 

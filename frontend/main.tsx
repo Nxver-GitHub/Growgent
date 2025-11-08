@@ -10,6 +10,7 @@ import { StrictMode } from "react";
 import App from "./App.tsx";
 import { LoadingScreen } from "./components/LoadingScreen.tsx";
 import "./index.css";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 // Initialize application
 const rootElement: HTMLElement | null = document.getElementById("root");
@@ -18,12 +19,12 @@ if (!rootElement) {
   const error = "Failed to find root element. Make sure there is a <div id='root'></div> in your HTML.";
   if (process.env.NODE_ENV === "development") {
     console.error("❌", error);
-  }
+}
   throw new Error(error);
 }
 
 try {
-  const root: Root = createRoot(rootElement);
+const root: Root = createRoot(rootElement);
   
   // Show loading screen immediately
   root.render(
@@ -33,11 +34,10 @@ try {
   );
   
   // Small delay to ensure loading screen is visible, then render app
+  // Note: StrictMode disabled to prevent double-rendering issues in development
   setTimeout(() => {
     root.render(
-      <StrictMode>
-        <App />
-      </StrictMode>
+      <App />
     );
   }, 100);
   

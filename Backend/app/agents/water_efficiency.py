@@ -7,7 +7,7 @@ recommendations by comparing recommended usage against typical baselines.
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +18,10 @@ from app.services.metrics import MetricsService
 from app.services.alert import AlertService
 from app.models.alert import AlertType, AlertSeverity
 from app.schemas.metrics import WaterMetricsResponse
+from app.agents.user_preferences_helper import get_user_preferences_for_field
+
+if TYPE_CHECKING:
+    from app.models.user_preferences import UserPreferences
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +48,14 @@ class WaterEfficiencyAgent(BaseAgent):
 
     Calculates water savings from fire-adaptive irrigation recommendations
     and generates milestone alerts when significant savings are achieved.
+    Uses user preferences for milestone thresholds and alert settings.
     """
 
-    # Milestone thresholds (liters saved)
-    MILESTONE_1000L = 1000.0
-    MILESTONE_5000L = 5000.0
-    MILESTONE_10000L = 10000.0
-    MILESTONE_25000L = 25000.0
+    # Default milestone thresholds (liters saved) - can be overridden by user preferences
+    DEFAULT_MILESTONE_1000L = 1000.0
+    DEFAULT_MILESTONE_5000L = 5000.0
+    DEFAULT_MILESTONE_10000L = 10000.0
+    DEFAULT_MILESTONE_25000L = 25000.0
 
     def __init__(self) -> None:
         """Initialize Water Efficiency Agent."""
@@ -78,13 +83,18 @@ class WaterEfficiencyAgent(BaseAgent):
         self.log_info(f"Processing water efficiency for field: {state.field_id}")
 
         try:
+            # Get user preferences for this field
+            preferences = await get_user_preferences_for_field(db, state.field_id)
+
             # Calculate water metrics using MetricsService
+            # Pass water cost from preferences if available
+            water_cost = preferences.water_cost_per_liter_usd if preferences else None
             state.water_metrics = await MetricsService.calculate_water_saved(
-                db, state.field_id, period="season"
+                db, state.field_id, period="season", water_cost_per_liter_usd=water_cost
             )
 
             # Check for milestones and create alerts if needed
-            await self._check_milestones(db, state)
+            await self._check_milestones(db, state, preferences)
 
             self.log_info(
                 f"Water efficiency calculated: field_id={state.field_id}, "
@@ -105,6 +115,7 @@ class WaterEfficiencyAgent(BaseAgent):
         self,
         db: AsyncSession,
         state: WaterEfficiencyAgentState,
+        preferences: Optional["UserPreferences"] = None,
     ) -> None:
         """
         Check if water savings milestones have been reached and create alerts.
@@ -112,50 +123,64 @@ class WaterEfficiencyAgent(BaseAgent):
         Args:
             db: Database session
             state: Agent state with calculated metrics
+            preferences: Optional user preferences
         """
         if not state.water_metrics:
             return
 
+        # Check if milestone alerts are enabled
+        if preferences and not preferences.water_milestone_alerts_enabled:
+            self.log_debug("Water milestone alerts disabled in user preferences")
+            return
+
         water_saved = float(state.water_metrics.water_saved_liters)
+
+        # Get milestone threshold from preferences or use default
+        milestone_threshold = (
+            float(preferences.water_savings_milestone_liters)
+            if preferences and preferences.water_savings_milestone_liters
+            else self.DEFAULT_MILESTONE_1000L
+        )
 
         # Determine which milestone was reached
         milestone_value = None
         milestone_message = None
 
-        if water_saved >= self.MILESTONE_25000L and (
+        # Use user's custom milestone threshold or standard milestones
+        if water_saved >= self.DEFAULT_MILESTONE_25000L and (
             state.last_milestone_alerted is None
-            or state.last_milestone_alerted < self.MILESTONE_25000L
+            or state.last_milestone_alerted < self.DEFAULT_MILESTONE_25000L
         ):
-            milestone_value = self.MILESTONE_25000L
+            milestone_value = self.DEFAULT_MILESTONE_25000L
             milestone_message = (
                 f"🎉 Amazing! You've saved over 25,000 liters of water this season! "
                 f"Total savings: {water_saved:,.0f}L (${state.water_metrics.cost_saved_usd:.2f})"
             )
-        elif water_saved >= self.MILESTONE_10000L and (
+        elif water_saved >= self.DEFAULT_MILESTONE_10000L and (
             state.last_milestone_alerted is None
-            or state.last_milestone_alerted < self.MILESTONE_10000L
+            or state.last_milestone_alerted < self.DEFAULT_MILESTONE_10000L
         ):
-            milestone_value = self.MILESTONE_10000L
+            milestone_value = self.DEFAULT_MILESTONE_10000L
             milestone_message = (
                 f"Excellent! You've saved over 10,000 liters of water this season! "
                 f"Total savings: {water_saved:,.0f}L (${state.water_metrics.cost_saved_usd:.2f})"
             )
-        elif water_saved >= self.MILESTONE_5000L and (
+        elif water_saved >= self.DEFAULT_MILESTONE_5000L and (
             state.last_milestone_alerted is None
-            or state.last_milestone_alerted < self.MILESTONE_5000L
+            or state.last_milestone_alerted < self.DEFAULT_MILESTONE_5000L
         ):
-            milestone_value = self.MILESTONE_5000L
+            milestone_value = self.DEFAULT_MILESTONE_5000L
             milestone_message = (
                 f"Great progress! You've saved over 5,000 liters of water this season! "
                 f"Total savings: {water_saved:,.0f}L (${state.water_metrics.cost_saved_usd:.2f})"
             )
-        elif water_saved >= self.MILESTONE_1000L and (
+        elif water_saved >= milestone_threshold and (
             state.last_milestone_alerted is None
-            or state.last_milestone_alerted < self.MILESTONE_1000L
+            or state.last_milestone_alerted < milestone_threshold
         ):
-            milestone_value = self.MILESTONE_1000L
+            milestone_value = milestone_threshold
             milestone_message = (
-                f"Congratulations! You've saved over 1,000 liters of water this season! "
+                f"Congratulations! You've saved over {milestone_threshold:,.0f} liters of water this season! "
                 f"Total savings: {water_saved:,.0f}L (${state.water_metrics.cost_saved_usd:.2f})"
             )
 

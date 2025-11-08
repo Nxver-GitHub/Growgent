@@ -67,7 +67,10 @@ export function AlertCard({
     },
   };
 
-  const config = severityConfig[severity];
+  // Defensive check: ensure severity is valid, default to "info" if not
+  const validSeverity: AlertSeverity = 
+    severity && severity in severityConfig ? severity : "info";
+  const config = severityConfig[validSeverity];
   const Icon = config.icon;
 
   return (

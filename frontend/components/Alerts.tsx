@@ -74,7 +74,7 @@ export function Alerts({ onDismissAlert }: AlertsProps): JSX.Element {
   const handleDismiss = useCallback(
     (id: string) => {
       acknowledgeAlert.mutate(id);
-      onDismissAlert?.();
+    onDismissAlert?.();
     },
     [acknowledgeAlert, onDismissAlert]
   );
@@ -197,7 +197,7 @@ export function Alerts({ onDismissAlert }: AlertsProps): JSX.Element {
               >
                 Next
               </Button>
-            </div>
+          </div>
           )}
         </>
       ) : (

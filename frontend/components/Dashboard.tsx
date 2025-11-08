@@ -88,26 +88,26 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
         // Fallback to Figma demo data if no API data available
         const demoData = title === "Fire-Adaptive Irrigation" 
           ? {
-              agent: "Fire-Adaptive Irrigation Agent",
-              title: "Increase Irrigation for Drought Preparation",
-              confidence: 92,
+          agent: "Fire-Adaptive Irrigation Agent",
+          title: "Increase Irrigation for Drought Preparation",
+          confidence: 92,
               reason: "Pre-PSPS watering recommended. Soil moisture below 40%, drought risk high, fire risk moderate. Strategic watering will protect crops and create defensive moisture barrier.",
-              fields: ["Field 1", "Field 3"],
-              duration: "2 hours",
-              waterVolume: "15,000 liters",
-              fireRiskImpact: "↓ 14% reduction",
-              waterSaved: "8% more efficient",
+          fields: ["Field 1", "Field 3"],
+          duration: "2 hours",
+          waterVolume: "15,000 liters",
+          fireRiskImpact: "↓ 14% reduction",
+          waterSaved: "8% more efficient",
             }
           : {
-              agent: "PSPS Anticipation Agent",
-              title: "Pre-PSPS Emergency Watering",
-              confidence: 95,
+          agent: "PSPS Anticipation Agent",
+          title: "Pre-PSPS Emergency Watering",
+          confidence: 95,
               reason: "Public Safety Power Shutoff predicted Nov 9, 14:00-02:00. Immediate pre-irrigation recommended to ensure crop survival during 12-hour power outage.",
-              fields: ["Field 1", "Field 2", "Field 3"],
-              duration: "3 hours",
-              waterVolume: "28,000 liters",
-              fireRiskImpact: "↓ 22% reduction",
-              waterSaved: "Emergency protocol",
+          fields: ["Field 1", "Field 2", "Field 3"],
+          duration: "3 hours",
+          waterVolume: "28,000 liters",
+          fireRiskImpact: "↓ 22% reduction",
+          waterSaved: "Emergency protocol",
             };
         setSelectedRecommendation(demoData as any);
       } else {
@@ -129,39 +129,39 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
     const pspsAlerts = alerts.filter((a) => a.agent_type === "psps_anticipation");
 
     return [
-      {
-        icon: Flame,
-        title: "Fire-Adaptive Irrigation",
+    {
+      icon: Flame,
+      title: "Fire-Adaptive Irrigation",
         status: fireAdaptiveRecs.length > 0 ? ("warning" as const) : ("active" as const),
         metric: `${fireAdaptiveRecs.length} recommendation${fireAdaptiveRecs.length !== 1 ? "s" : ""} pending`,
         alertCount: alerts.filter((a) => a.agent_type === "fire_adaptive_irrigation").length,
         lastUpdate: recommendations.length > 0
           ? formatRelativeTime(recommendations[0]?.updated_at || recommendations[0]?.created_at)
           : "No updates",
-      },
-      {
-        icon: Droplet,
-        title: "Water Efficiency",
-        status: "active" as const,
+    },
+    {
+      icon: Droplet,
+      title: "Water Efficiency",
+      status: "active" as const,
         metric: "Monitoring water usage",
         lastUpdate: "Updated recently",
-      },
-      {
-        icon: Shield,
-        title: "Fire Risk Reduction",
-        status: "active" as const,
+    },
+    {
+      icon: Shield,
+      title: "Fire Risk Reduction",
+      status: "active" as const,
         metric: "Monitoring fire risk",
         lastUpdate: "Updated recently",
-      },
-      {
-        icon: Zap,
-        title: "Utility Shutoff Alert",
+    },
+    {
+      icon: Zap,
+      title: "Utility Shutoff Alert",
         status: pspsAlerts.length > 0 ? ("warning" as const) : ("active" as const),
         metric: pspsAlerts.length > 0 ? `${pspsAlerts.length} PSPS alert${pspsAlerts.length !== 1 ? "s" : ""}` : "No events",
         alertCount: pspsAlerts.length,
         lastUpdate: pspsAlerts.length > 0 ? formatRelativeTime(pspsAlerts[0]?.created_at) : "No updates",
-      },
-    ];
+    },
+  ];
   }, [recommendationsData, criticalAlertsData]);
 
   // Check if backend is offline (connection refused errors)
@@ -195,8 +195,8 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
   // Handle alert dismissal
   const handleDismiss = useCallback((index: number) => {
     setDismissedAlertIndices((prev) => new Set([...prev, index]));
-    onDismissAlert?.();
-    toast.success("Alert dismissed");
+      onDismissAlert?.();
+      toast.success("Alert dismissed");
   }, [onDismissAlert]);
 
   // Show skeleton loaders only on initial load (not when backend is offline)
@@ -323,12 +323,6 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
           >
             Irrigation Schedule
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => onNavigate("chat")}
-          >
-            Chat with Agents
-          </Button>
         </div>
       </div>
 
@@ -342,11 +336,11 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {agentCards.map((card, index) => (
-              <AgentStatusCard key={index} {...card} onClick={() => handleAgentClick(card.title)} />
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {agentCards.map((card, index) => (
+            <AgentStatusCard key={index} {...card} onClick={() => handleAgentClick(card.title)} />
+          ))}
+        </div>
         )}
       </div>
 
@@ -366,9 +360,9 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
               ))}
             </div>
           ) : (
-            <div className="space-y-4">
+          <div className="space-y-4">
               {visibleAlerts.map((alert) => (
-                <AlertCard
+                  <AlertCard
                   key={`alert-${alert.index}`}
                   severity={alert.severity}
                   title={alert.title}
@@ -376,10 +370,10 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
                   time={alert.time}
                   fields={alert.fields}
                   onDismiss={() => handleDismiss(alert.index)}
-                  onView={() => onNavigate("alerts")}
-                />
+                    onView={() => onNavigate("alerts")}
+                  />
               ))}
-            </div>
+          </div>
           )}
         </div>
       )}

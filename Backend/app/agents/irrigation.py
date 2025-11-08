@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.base import AgentState, BaseAgent
-from app.mcp import fire_risk_mcp, psps_mcp, sensor_mcp, weather_mcp
+from app.mcp import fire_risk_mcp, psps_mcp, sensor_mcp, weather_mcp, satellite_mcp
 from app.models.field import Field
 from app.models.recommendation import AgentType, RecommendationAction
 
@@ -40,6 +40,7 @@ class IrrigationAgentState(AgentState):
     fire_risk_data: Optional[Dict[str, Any]] = None
     psps_predictions: Optional[list[Dict[str, Any]]] = None
     field_location: Optional[Dict[str, float]] = None  # {latitude, longitude}
+    ndvi_data: Optional[Dict[str, Any]] = None  # NDVI and crop health data
 
     # Calculated values
     water_need: Optional[float] = None  # Calculated water need
@@ -225,6 +226,12 @@ class FireAdaptiveIrrigationAgent(BaseAgent):
                 lat, lon, hours_ahead=48
             )
 
+            # Fetch NDVI and crop health data
+            if state.field_location:
+                state.ndvi_data = await satellite_mcp.get_ndvi(
+                    lat, lon, days_back=30
+                )
+
             self.log_debug("External data fetched successfully")
 
         except Exception as e:
@@ -377,7 +384,7 @@ class FireAdaptiveIrrigationAgent(BaseAgent):
             Data quality score (0.0 to 1.0)
         """
         score = 0.0
-        max_score = 5.0
+        max_score = 6.0  # Updated to include NDVI
 
         if state.current_soil_moisture is not None:
             score += 1.0
@@ -389,6 +396,8 @@ class FireAdaptiveIrrigationAgent(BaseAgent):
             score += 1.0
         if state.field_location:
             score += 1.0
+        if state.ndvi_data:
+            score += 1.0  # NDVI adds to data quality
 
         return score / max_score
 
@@ -457,6 +466,15 @@ class FireAdaptiveIrrigationAgent(BaseAgent):
             and state.drought_risk_score >= self.DROUGHT_RISK_HIGH_THRESHOLD
         )
 
+        # Check crop health from NDVI
+        crop_health_poor = False
+        if state.ndvi_data and "current" in state.ndvi_data:
+            current_ndvi = state.ndvi_data["current"].get("ndvi", 0.5)
+            health_status = state.ndvi_data["current"].get("health_status", "fair")
+            if health_status == "poor" or current_ndvi < 0.3:
+                crop_health_poor = True
+                self.log_info(f"Poor crop health detected (NDVI: {current_ndvi:.2f})")
+
         # Decision logic
         if fire_risk_high and soil_moisture_sufficient:
             state.recommended_action = RecommendationAction.DELAY
@@ -468,20 +486,19 @@ class FireAdaptiveIrrigationAgent(BaseAgent):
             )
             self.log_info("High fire risk + sufficient moisture → DELAY")
 
-        elif soil_moisture_low or drought_risk_high:
+        elif soil_moisture_low or drought_risk_high or crop_health_poor:
             state.recommended_action = RecommendationAction.IRRIGATE
             state.recommended_timing = datetime.now() + timedelta(hours=6)
+            reasons = []
             if soil_moisture_low:
-                state.reasoning = (
-                    f"Soil moisture is low ({state.current_soil_moisture:.1f}%). "
-                    "Irrigating to protect crop health."
-                )
-            else:
-                state.reasoning = (
-                    f"Drought risk is high ({state.drought_risk_score:.2f}). "
-                    "Irrigating to prevent crop stress."
-                )
-            self.log_info("Low moisture or high drought risk → IRRIGATE")
+                reasons.append(f"soil moisture is low ({state.current_soil_moisture:.1f}%)")
+            if drought_risk_high:
+                reasons.append(f"drought risk is high ({state.drought_risk_score:.2f})")
+            if crop_health_poor:
+                ndvi_val = state.ndvi_data["current"]["ndvi"] if state.ndvi_data else None
+                reasons.append(f"crop health is poor (NDVI: {ndvi_val:.2f})" if ndvi_val else "crop health is poor")
+            state.reasoning = f"{', '.join(reasons)}. Irrigating to protect crop health."
+            self.log_info("Low moisture, high drought risk, or poor crop health → IRRIGATE")
 
         else:
             state.recommended_action = RecommendationAction.MONITOR

@@ -81,17 +81,22 @@ class MetricsService:
         return typical_liters
 
     @staticmethod
-    def _calculate_cost_saved(water_saved_liters: float) -> float:
+    def _calculate_cost_saved(
+        water_saved_liters: float,
+        water_cost_per_liter_usd: Optional[float] = None,
+    ) -> float:
         """
         Calculate cost savings from water saved.
 
         Args:
             water_saved_liters: Water saved in liters
+            water_cost_per_liter_usd: Optional water cost per liter (uses default if not provided)
 
         Returns:
             Cost savings in USD
         """
-        return water_saved_liters * WATER_COST_PER_LITER_USD
+        cost_per_liter = water_cost_per_liter_usd if water_cost_per_liter_usd is not None else WATER_COST_PER_LITER_USD
+        return water_saved_liters * cost_per_liter
 
     @staticmethod
     async def _calculate_drought_stress_score(
@@ -152,6 +157,7 @@ class MetricsService:
         db: AsyncSession,
         field_id: UUID,
         period: str = "season",
+        water_cost_per_liter_usd: Optional[float] = None,
     ) -> WaterMetricsResponse:
         """
         Calculate water efficiency metrics for a field.
@@ -253,8 +259,15 @@ class MetricsService:
         else:
             efficiency_percent = 0.0
 
-        # Calculate cost savings
-        cost_saved_usd = MetricsService._calculate_cost_saved(water_saved_liters)
+        # Calculate cost savings (use provided cost or fetch from user preferences)
+        if water_cost_per_liter_usd is None:
+            # Try to get from user preferences
+            from app.agents.user_preferences_helper import get_user_preferences_for_field
+            preferences = await get_user_preferences_for_field(db, field_id)
+            if preferences and preferences.water_cost_per_liter_usd is not None:
+                water_cost_per_liter_usd = preferences.water_cost_per_liter_usd
+
+        cost_saved_usd = MetricsService._calculate_cost_saved(water_saved_liters, water_cost_per_liter_usd)
 
         # Calculate drought stress score
         drought_stress_score = await MetricsService._calculate_drought_stress_score(db, field_id)

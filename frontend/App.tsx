@@ -9,9 +9,8 @@ import { IrrigationSchedule } from "./components/IrrigationSchedule";
 import { FieldsMap } from "./components/FieldsMap";
 import { WaterMetrics } from "./components/WaterMetrics";
 import { Alerts } from "./components/Alerts";
-import { Chat } from "./components/Chat";
 import { Settings } from "./components/Settings";
-import { MobileNav } from "./components/layout/MobileNav";
+import { ChatBubble } from "./components/ChatBubble";
 import { Toaster } from "./components/ui/sonner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { useCriticalAlerts } from "./lib/hooks/useAlerts";
@@ -19,11 +18,13 @@ import type { Page } from "./lib/types";
 
 function AppContent(): JSX.Element {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
 
   // same API-driven alert count you added
+  // Backend limit is max 50, so use 50 instead of 100
   const { data: criticalAlertsData, error: alertsError } = useCriticalAlerts({
-    limit: 100,
+    limit: 50,
   });
 
   const alertCount = useMemo(() => {
@@ -55,8 +56,6 @@ function AppContent(): JSX.Element {
         return <WaterMetrics />;
       case "alerts":
         return <Alerts onDismissAlert={handleDismissAlert} />;
-      case "chat":
-        return <Chat />;
       case "settings":
         return <Settings />;
       default:
@@ -71,33 +70,34 @@ function AppContent(): JSX.Element {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
+      {/* Collapsible Sidebar */}
       <AppSidebar
         currentPage={currentPage}
         onNavigate={(page: Page) => setCurrentPage(page)}
         alertCount={alertCount}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+        collapsed={!sidebarOpen}
+        onToggleCollapse={() => setSidebarOpen((prev) => !prev)}
       />
 
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <AppHeader
           farmName="Sunnydale Farm"
           notificationCount={alertCount}
           onNotificationClick={() => setCurrentPage("alerts")}
-          onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
-          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+          sidebarOpen={sidebarOpen}
         />
 
-        <main className="flex-1 overflow-y-auto p-8 bg-slate-50">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
           <div className="max-w-7xl mx-auto w-full">{renderPage()}</div>
         </main>
       </div>
 
-      {/* mobile bottom bar */}
-      <MobileNav
-        currentPage={currentPage}
-        onNavigate={(page: Page) => setCurrentPage(page)}
-        alertCount={alertCount}
+      {/* Floating Chat Window - Bottom right corner */}
+      <ChatBubble 
+        isOpen={chatOpen} 
+        onToggle={() => setChatOpen((prev) => !prev)}
       />
 
       <Toaster />

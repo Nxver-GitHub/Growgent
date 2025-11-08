@@ -331,9 +331,9 @@ export function IrrigationSchedule(): JSX.Element {
                 </div>
               )}
               {selectedEvent.waterVolume && (
-                <div className="p-4 bg-slate-50 rounded-lg">
+              <div className="p-4 bg-slate-50 rounded-lg">
                   <p className="text-slate-700">Water volume: {selectedEvent.waterVolume}</p>
-                </div>
+              </div>
               )}
             </div>
           )}

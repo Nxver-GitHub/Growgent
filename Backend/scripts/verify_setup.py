@@ -18,7 +18,7 @@ from app.database import engine, close_db
 from app.config import settings
 
 # Import all models to ensure they're registered
-from app.models import Field, SensorReading, Recommendation, Alert  # noqa: F401
+from app.models import Field, SensorReading, Recommendation, Alert, Zone, ChatMessage  # noqa: F401
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,7 +56,7 @@ async def verify_database() -> bool:
             )
             tables = [row[0] for row in result.fetchall()]
             
-            expected_tables = ["alerts", "fields", "recommendations", "sensor_readings"]
+            expected_tables = ["alerts", "fields", "recommendations", "sensor_readings", "zones", "chat_messages"]
             missing_tables = [t for t in expected_tables if t not in tables]
             
             if missing_tables:

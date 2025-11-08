@@ -37,6 +37,47 @@ from app.schemas.metrics import (
     WaterMetricsSummaryResponse,
     FireRiskMetricsResponse,
 )
+from app.schemas.zone import (
+    ZoneBase,
+    ZoneCreate,
+    ZoneUpdate,
+    ZoneResponse,
+    ZoneListResponse,
+)
+from app.schemas.explanation import (
+    AgentExplanation,
+    DecisionFactor,
+    DataSource,
+    AlternativeScenario,
+    ConfidenceBreakdown,
+    ExplanationRequest,
+)
+from app.schemas.chat import ChatRequest, ChatResponse, ChatMessage
+from app.schemas.chat_history import (
+    ChatMessageResponse,
+    ChatHistoryResponse,
+    ChatConversationSummary,
+    ChatConversationListResponse,
+)
+from app.schemas.user import (
+    UserBase,
+    UserCreate,
+    UserUpdate,
+    UserResponse,
+    UserProfileResponse,
+)
+from app.schemas.farm import (
+    FarmBase,
+    FarmCreate,
+    FarmUpdate,
+    FarmResponse,
+)
+from app.schemas.user_preferences import (
+    UserPreferencesBase,
+    UserPreferencesCreate,
+    UserPreferencesUpdate,
+    UserPreferencesResponse,
+)
 
 __all__ = [
     # Field schemas
@@ -67,4 +108,42 @@ __all__ = [
     "WaterMetricsResponse",
     "WaterMetricsSummaryResponse",
     "FireRiskMetricsResponse",
+    # Zone schemas
+    "ZoneBase",
+    "ZoneCreate",
+    "ZoneUpdate",
+    "ZoneResponse",
+    "ZoneListResponse",
+    # Explanation schemas
+    "AgentExplanation",
+    "DecisionFactor",
+    "DataSource",
+    "AlternativeScenario",
+    "ConfidenceBreakdown",
+    "ExplanationRequest",
+    # Chat schemas
+    "ChatRequest",
+    "ChatResponse",
+    "ChatMessage",
+    # Chat history schemas
+    "ChatMessageResponse",
+    "ChatHistoryResponse",
+    "ChatConversationSummary",
+    "ChatConversationListResponse",
+    # User schemas
+    "UserBase",
+    "UserCreate",
+    "UserUpdate",
+    "UserResponse",
+    "UserProfileResponse",
+    # Farm schemas
+    "FarmBase",
+    "FarmCreate",
+    "FarmUpdate",
+    "FarmResponse",
+    # User preferences schemas
+    "UserPreferencesBase",
+    "UserPreferencesCreate",
+    "UserPreferencesUpdate",
+    "UserPreferencesResponse",
 ]

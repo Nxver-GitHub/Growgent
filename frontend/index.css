@@ -3172,3 +3172,96 @@ html {
       rotate(var(--tw-exit-rotate, 0));
   }
 }
+
+/* Ensure Mapbox controls stay below dialogs */
+.mapbox-container .mapboxgl-control-container,
+.mapbox-container .mapboxgl-ctrl-group,
+.mapbox-container .mapboxgl-ctrl,
+.mapbox-container .mapboxgl-ctrl-top-right,
+.mapbox-container .mapboxgl-ctrl-bottom-right,
+.mapbox-container .mapboxgl-ctrl-top-left,
+.mapbox-container .mapboxgl-ctrl-bottom-left,
+.mapboxgl-control-container,
+.mapboxgl-ctrl-group,
+.mapboxgl-ctrl,
+.mapboxgl-ctrl-top-right,
+.mapboxgl-ctrl-bottom-right,
+.mapboxgl-ctrl-top-left,
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-zoom-in,
+.mapboxgl-ctrl-zoom-out,
+.mapboxgl-ctrl-compass,
+.mapboxgl-ctrl-fullscreen {
+  z-index: 1 !important;
+}
+
+/* Hide Mapbox controls when dialog is open */
+body.dialog-open .mapboxgl-control-container,
+body.dialog-open .mapboxgl-ctrl-group,
+body.dialog-open .mapboxgl-ctrl {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Ensure dialog portal is above everything */
+[data-radix-portal],
+[data-slot="dialog-portal"] {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+
+/* Prevent sidebar duplication - ensure single rendering */
+aside[data-sidebar="main"] {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  contain: layout style paint !important;
+  will-change: width !important;
+}
+
+/* Ensure only one sidebar is visible */
+aside[data-sidebar="main"]:not(:first-of-type) {
+  display: none !important;
+}
+
+/* Ensure sidebar nav buttons don't duplicate */
+aside nav {
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+}
+
+aside nav button {
+  display: flex !important;
+  position: relative !important;
+  transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+}
+
+/* Chat bubble styling - floating button/window in bottom right */
+button[data-chat-bubble="button"],
+div[data-chat-bubble="window"] {
+  position: fixed !important;
+  z-index: 100 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Ensure chat bubble doesn't interfere with scrollbars */
+button[data-chat-bubble="button"] {
+  bottom: 1.5rem !important;
+  right: 1.5rem !important;
+}
+
+div[data-chat-bubble="window"] {
+  bottom: 1.5rem !important;
+  right: 1.5rem !important;
+  max-height: calc(100vh - 3rem) !important;
+}

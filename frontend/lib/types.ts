@@ -215,3 +215,27 @@ export interface LegacyRecommendation {
   fireRiskImpact?: string;
   waterSaved?: string;
 }
+
+/**
+ * Risk zone types.
+ */
+export type ZoneType = "fire_risk" | "psps" | "irrigation" | "custom";
+
+/**
+ * Risk zone severity/level.
+ */
+export type ZoneLevel = "critical" | "high" | "moderate" | "low" | "info";
+
+/**
+ * Risk zone data structure.
+ */
+export interface RiskZone {
+  id: UUID;
+  name: string;
+  type: ZoneType;
+  level: ZoneLevel;
+  geometry: GeoJSON.Feature; // GeoJSON Feature with Polygon/MultiPolygon geometry
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}

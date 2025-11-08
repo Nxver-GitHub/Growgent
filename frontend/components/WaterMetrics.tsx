@@ -151,11 +151,14 @@ export function WaterMetrics(): JSX.Element {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="p-6">
                 <h3 className="mb-4">Water Use Over Time</h3>
-                <div className="h-64 bg-gradient-to-br from-emerald-50 to-blue-50 rounded-lg flex items-center justify-center">
+                <div className="h-64 bg-gradient-to-br from-emerald-50 to-blue-50 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center">
                   <div className="text-center space-y-2">
-                    <p className="text-slate-600">Area Chart</p>
-                    <p className="text-slate-500">
-                      6-month water usage trend (Recharts integration)
+                    <p className="text-slate-600 font-medium">Chart Placeholder</p>
+                    <p className="text-slate-500 text-sm">
+                      Area chart showing 6-month water usage trend
+                    </p>
+                    <p className="text-slate-400 text-xs mt-2">
+                      Ready for Recharts integration
                     </p>
                   </div>
                 </div>
@@ -163,30 +166,45 @@ export function WaterMetrics(): JSX.Element {
 
               <Card className="p-6">
                 <h3 className="mb-4">Fire Risk Trajectory</h3>
-                <div className="h-64 bg-gradient-to-br from-red-50 to-green-50 rounded-lg flex items-center justify-center">
+                <div className="h-64 bg-gradient-to-br from-red-50 to-green-50 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center">
                   <div className="text-center space-y-2">
-                    <p className="text-slate-600">Line Chart</p>
-                    <p className="text-slate-500">Fire risk levels over 6 months</p>
+                    <p className="text-slate-600 font-medium">Chart Placeholder</p>
+                    <p className="text-slate-500 text-sm">
+                      Line chart showing fire risk levels over 6 months
+                    </p>
+                    <p className="text-slate-400 text-xs mt-2">
+                      Ready for Recharts integration
+                    </p>
                   </div>
                 </div>
               </Card>
 
               <Card className="p-6">
                 <h3 className="mb-4">Crop Health (NDVI) Trend</h3>
-                <div className="h-64 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg flex items-center justify-center">
+                <div className="h-64 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center">
                   <div className="text-center space-y-2">
-                    <p className="text-slate-600">Area Chart</p>
-                    <p className="text-slate-500">NDVI values (0-1 scale)</p>
+                    <p className="text-slate-600 font-medium">Chart Placeholder</p>
+                    <p className="text-slate-500 text-sm">
+                      Area chart showing NDVI values (0-1 scale)
+                    </p>
+                    <p className="text-slate-400 text-xs mt-2">
+                      Ready for Recharts integration
+                    </p>
                   </div>
                 </div>
               </Card>
 
               <Card className="p-6">
                 <h3 className="mb-4">Drought Stress Index</h3>
-                <div className="h-64 bg-gradient-to-br from-yellow-50 to-red-50 rounded-lg flex items-center justify-center">
+                <div className="h-64 bg-gradient-to-br from-yellow-50 to-red-50 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center">
                   <div className="text-center space-y-2">
-                    <p className="text-slate-600">Bar Chart</p>
-                    <p className="text-slate-500">Weekly drought stress levels</p>
+                    <p className="text-slate-600 font-medium">Chart Placeholder</p>
+                    <p className="text-slate-500 text-sm">
+                      Bar chart showing weekly drought stress levels
+                    </p>
+                    <p className="text-slate-400 text-xs mt-2">
+                      Ready for Recharts integration
+                    </p>
                   </div>
                 </div>
               </Card>

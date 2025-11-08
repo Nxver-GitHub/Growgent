@@ -6,9 +6,10 @@ are linked to sensor readings and recommendations.
 """
 
 from typing import Optional, TYPE_CHECKING
+from uuid import UUID
 
 from geoalchemy2 import Geometry
-from sqlalchemy import Float, String, Text
+from sqlalchemy import Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
     from app.models.sensor_reading import SensorReading
     from app.models.recommendation import Recommendation
     from app.models.alert import Alert
+    from app.models.farm import Farm
 
 
 class Field(BaseModel):
@@ -29,8 +31,19 @@ class Field(BaseModel):
 
     __tablename__ = "fields"
 
-    # Farm identifier (string for now; could be FK to Farm model later)
-    farm_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    # Farm relationship (FK to Farm model)
+    farm_id: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        index=True,
+        comment="Legacy farm identifier string (for backward compatibility)",
+    )
+    farm_uuid: Mapped[Optional[UUID]] = mapped_column(
+        ForeignKey("farms.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="Foreign key to Farm model",
+    )
 
     # Field identification
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -65,6 +78,11 @@ class Field(BaseModel):
         "Alert",
         back_populates="field",
         cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    farm: Mapped[Optional["Farm"]] = relationship(
+        "Farm",
+        back_populates="fields",
         lazy="selectin",
     )
 

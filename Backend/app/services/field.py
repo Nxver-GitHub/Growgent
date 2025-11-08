@@ -87,19 +87,26 @@ class FieldService:
             f"page={page}, page_size={page_size}"
         )
 
-        # Build query
-        query = select(Field)
+        # Build base query for filtering
+        base_query = select(Field)
 
         if farm_id:
-            query = query.where(Field.farm_id == farm_id)
+            base_query = base_query.where(Field.farm_id == farm_id)
         if crop_type:
-            query = query.where(Field.crop_type == crop_type)
+            base_query = base_query.where(Field.crop_type == crop_type)
 
         # Get total count
         from sqlalchemy import func
-        count_query = select(func.count()).select_from(query.subquery())
+        count_query = select(func.count(Field.id))
+        if farm_id:
+            count_query = count_query.where(Field.farm_id == farm_id)
+        if crop_type:
+            count_query = count_query.where(Field.crop_type == crop_type)
         count_result = await db.execute(count_query)
         total = count_result.scalar_one() or 0
+
+        # Build paginated query
+        query = base_query
 
         # Apply pagination and ordering
         query = query.order_by(desc(Field.created_at))

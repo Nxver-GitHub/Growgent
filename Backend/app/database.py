@@ -20,19 +20,14 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.pool import NullPool
 
 from app.config import settings
-print("🧱 settings.database_url =", settings.database_url)
-
+# Debug print removed to avoid Unicode encoding issues on Windows
 
 # Load environment variables from .env in project root
 load_dotenv()
-
-print("🔧 Loaded DATABASE_URL:", os.getenv("DATABASE_URL"))
 logger = logging.getLogger(__name__)
 
 # Convert postgresql:// to postgresql+asyncpg:// for async support
-database_url = settings.database_url
-
-# .replace("postgresql://", "postgresql+asyncpg://", 1)
+database_url = settings.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
 # Create async engine
 # NullPool for development; use connection pooling in production

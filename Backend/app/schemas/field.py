@@ -49,6 +49,24 @@ class FieldResponse(FieldBase):
     created_at: datetime
     updated_at: datetime
 
+    @field_validator("location_geom", mode="before")
+    @classmethod
+    def convert_geometry(cls, v):
+        """Convert PostGIS Geometry to string/WKT."""
+        if v is None:
+            return None
+        # If it's already a string, return as-is
+        if isinstance(v, str):
+            return v
+        # Try to convert Geometry object to WKT string
+        try:
+            from geoalchemy2.shape import to_shape
+            geom_shape = to_shape(v)
+            return geom_shape.wkt
+        except Exception:
+            # Fallback to string conversion
+            return str(v) if v else None
+
     class Config:
         """Pydantic config."""
 

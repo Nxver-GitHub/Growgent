@@ -74,8 +74,43 @@ async def list_fields(
             include_latest_sensor=True,
         )
 
+        # Convert fields to response format
+        # Convert Geometry similar to zones endpoint before validation
+        field_responses = []
+        for field in fields:
+            # Convert Geometry to string before creating response
+            location_geom_str = None
+            if field.location_geom:
+                try:
+                    # Use same approach as zones - convert to string first
+                    geom_str = str(field.location_geom)
+                    # If it looks like WKT, use it; otherwise try geoalchemy2 conversion
+                    if geom_str.startswith("POINT") or geom_str.startswith("point"):
+                        location_geom_str = geom_str
+                    else:
+                        from geoalchemy2.shape import to_shape
+                        geom_shape = to_shape(field.location_geom)
+                        location_geom_str = geom_shape.wkt
+                except Exception:
+                    # If conversion fails, set to None (field_validator will handle it)
+                    location_geom_str = None
+            
+            # Create dict and validate (field_validator will handle any remaining conversion)
+            field_dict = {
+                "id": field.id,
+                "farm_id": field.farm_id,
+                "name": field.name,
+                "crop_type": field.crop_type,
+                "area_hectares": field.area_hectares,
+                "location_geom": location_geom_str,
+                "notes": field.notes,
+                "created_at": field.created_at,
+                "updated_at": field.updated_at,
+            }
+            field_responses.append(FieldResponse.model_validate(field_dict))
+        
         response_data = FieldListResponse(
-            fields=[FieldResponse.model_validate(field) for field in fields],
+            fields=field_responses,
             total=total,
             page=page,
             page_size=page_size,
@@ -85,9 +120,11 @@ async def list_fields(
 
     except Exception as e:
         logger.error(f"Error listing fields: {e}", exc_info=True)
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list fields",
+            detail=f"Failed to list fields: {str(e)}",
         )
 
 

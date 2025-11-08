@@ -13,9 +13,10 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import agents, alerts, fields, recommendations, metrics
+from app.api import agents, alerts, fields, recommendations, metrics, zones, scheduler as scheduler_api, satellite, users, farms, user_preferences
 from app.config import settings
 from app.database import init_db, close_db
+from app.services.scheduler import scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -42,10 +43,25 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize database: {e}")
         raise
 
+    # Startup: Start agent scheduler
+    try:
+        await scheduler.start()
+        logger.info("Agent scheduler started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start agent scheduler: {e}")
+        # Don't fail startup if scheduler fails, but log the error
+
     yield
 
-    # Shutdown: Close database connections
+    # Shutdown: Stop agent scheduler
     logger.info("Shutting down Growgent API...")
+    try:
+        await scheduler.stop()
+        logger.info("Agent scheduler stopped")
+    except Exception as e:
+        logger.error(f"Error stopping scheduler: {e}")
+
+    # Shutdown: Close database connections
     await close_db()
     logger.info("Database connections closed")
 
@@ -82,6 +98,12 @@ app.include_router(fields.router)
 app.include_router(recommendations.router)
 app.include_router(alerts.router)
 app.include_router(metrics.router)
+app.include_router(zones.router)
+app.include_router(scheduler_api.router)
+app.include_router(satellite.router)
+app.include_router(users.router)
+app.include_router(farms.router)
+app.include_router(user_preferences.router)
 
 
 @app.exception_handler(Exception)

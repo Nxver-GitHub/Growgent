@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { toast } from "sonner";
 
 interface AppHeaderProps {
   /** Optional farm name to display */
@@ -29,8 +30,8 @@ interface AppHeaderProps {
   onNotificationClick?: () => void;
   /** Optional callback to toggle sidebar */
   onToggleSidebar?: () => void;
-  /** Whether the sidebar is currently collapsed */
-  sidebarCollapsed?: boolean;
+  /** Whether the sidebar is currently open */
+  sidebarOpen?: boolean;
 }
 
 export function AppHeader({
@@ -38,13 +39,19 @@ export function AppHeader({
   notificationCount = 0,
   onNotificationClick,
   onToggleSidebar,
-  sidebarCollapsed = false,
+  sidebarOpen = true,
 }: AppHeaderProps): JSX.Element {
   return (
-    <header className="h-16 bg-white border-b-2 border-slate-200 px-6 flex items-center justify-between shadow-sm">
+    <header className="h-16 bg-white border-b-2 border-slate-200 px-6 flex items-center justify-between shadow-sm relative z-[105]">
       <div className="flex items-center gap-4 flex-1">
-        {sidebarCollapsed && onToggleSidebar && (
-          <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="hover:bg-emerald-50">
+        {onToggleSidebar && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onToggleSidebar} 
+            className="hover:bg-emerald-50"
+            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          >
             <Menu className="h-5 w-5 text-slate-700" />
           </Button>
         )}
@@ -81,13 +88,20 @@ export function AppHeader({
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast.info("Opening profile settings...")}>
               <User className="h-4 w-4 mr-2" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => toast.info("Opening settings...")}>
+              Settings
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600">Log out</DropdownMenuItem>
+            <DropdownMenuItem 
+              className="text-red-600"
+              onClick={() => toast.info("Logout functionality coming soon")}
+            >
+              Log out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

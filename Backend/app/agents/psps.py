@@ -7,7 +7,7 @@ are affected by active or predicted Public Safety Power Shutoffs (PSPS).
 
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,6 +20,10 @@ from app.models.recommendation import RecommendationAction, Recommendation
 from app.services.psps import PSPSService
 from app.services.alert import AlertService
 from app.services.geo import GeoService
+from app.agents.user_preferences_helper import get_user_preferences_for_field
+
+if TYPE_CHECKING:
+    from app.models.user_preferences import UserPreferences
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +52,12 @@ class PSPSAlertAgent(BaseAgent):
 
     Monitors utility shutoff events and generates alerts for affected fields.
     Tracks seen events to avoid duplicate alerts.
+    Uses user preferences for alert settings and pre-irrigation timing.
     """
 
-    # PSPS timing thresholds
-    PSPS_WARNING_HOURS = 48  # Hours before shutoff to send warning
-    PSPS_PRE_IRRIGATE_HOURS = 36  # Hours before shutoff to recommend pre-irrigation
+    # Default PSPS timing thresholds (can be overridden by user preferences)
+    DEFAULT_PSPS_WARNING_HOURS = 48  # Hours before shutoff to send warning
+    DEFAULT_PSPS_PRE_IRRIGATE_HOURS = 36  # Hours before shutoff to recommend pre-irrigation
 
     def __init__(self) -> None:
         """Initialize PSPS Anticipation Agent."""
@@ -88,12 +93,12 @@ class PSPSAlertAgent(BaseAgent):
             if state.error:
                 return state
 
-            # Step 2: Generate alerts for new events
+            # Step 2: Generate alerts for new events (checks user preferences)
             state = await self._generate_alerts(state, db)
             if state.error:
                 return state
 
-            # Step 3: Generate pre-irrigation recommendations if needed
+            # Step 3: Generate pre-irrigation recommendations if needed (uses user preferences)
             state = await self._check_pre_irrigation(state, db)
 
             self.log_info(
@@ -199,6 +204,12 @@ class PSPSAlertAgent(BaseAgent):
 
             # Only create alerts for new events
             if event_id not in [e.get("id") for e in state.new_events]:
+                continue
+
+            # Check user preferences for PSPS alerts
+            preferences = await get_user_preferences_for_field(db, field.id)
+            if preferences and not preferences.psps_alerts_enabled:
+                self.log_debug(f"PSPS alerts disabled for field {field.id}, skipping")
                 continue
 
             try:
@@ -307,6 +318,16 @@ class PSPSAlertAgent(BaseAgent):
             if status != "PREDICTED":
                 continue
 
+            # Get user preferences for this field
+            preferences = await get_user_preferences_for_field(db, field.id)
+            
+            # Get pre-irrigation hours from preferences or use default
+            pre_irrigate_hours = (
+                preferences.psps_pre_irrigation_hours
+                if preferences and preferences.psps_pre_irrigation_hours
+                else self.DEFAULT_PSPS_PRE_IRRIGATE_HOURS
+            )
+
             # Check if shutoff is within pre-irrigation window
             predicted_start_str = shutoff_info.get("predicted_start_time")
             if not predicted_start_str:
@@ -319,9 +340,9 @@ class PSPSAlertAgent(BaseAgent):
                 hours_until = (predicted_start - datetime.now(timezone.utc)).total_seconds() / 3600
 
                 # If within pre-irrigation window, create recommendation
-                if 0 < hours_until <= self.PSPS_PRE_IRRIGATE_HOURS:
+                if 0 < hours_until <= pre_irrigate_hours:
                     await self._create_pre_irrigation_recommendation(
-                        db, field, shutoff_info, hours_until
+                        db, field, shutoff_info, hours_until, preferences
                     )
                     self.log_info(
                         f"Created pre-irrigation recommendation for field {field.id}, "
@@ -339,6 +360,7 @@ class PSPSAlertAgent(BaseAgent):
         field: Field,
         shutoff_info: dict,
         hours_until: float,
+        preferences: Optional["UserPreferences"] = None,
     ) -> None:
         """
         Create a pre-irrigation recommendation for PSPS preparation.
@@ -375,6 +397,13 @@ class PSPSAlertAgent(BaseAgent):
                         f"Recent pre-irrigation recommendation exists for field {field.id}, skipping"
                     )
                     return
+
+            # Check if auto-pre-irrigation is enabled
+            auto_pre_irrigate = (
+                preferences.psps_auto_pre_irrigate
+                if preferences and preferences.psps_auto_pre_irrigate
+                else False
+            )
 
             # Create new recommendation
             recommended_timing = datetime.now(timezone.utc) + timedelta(
