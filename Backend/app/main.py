@@ -75,21 +75,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware - restrict origins in production
-ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://localhost:5173",  # Vite default port (if used)
-    # Add production frontend URL when deployed
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS if settings.environment == "development" else [],
+    allow_origins=settings.allowed_origins, # <-- USE THE SETTING HERE
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["*"], # Allow all methods
+    allow_headers=["*"], # Allow all headers
 )
 
 # Register API routers

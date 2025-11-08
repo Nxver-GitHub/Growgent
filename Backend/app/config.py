@@ -5,7 +5,7 @@ This module defines the application settings using Pydantic BaseSettings,
 which automatically loads values from environment variables.
 """
 
-from typing import Optional
+from typing import List, Optional # Added List
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -82,6 +82,12 @@ class Settings(BaseSettings):
     debug: bool = Field(
         default=True,
         description="Enable debug mode (should be False in production)",
+    )
+
+    # CORS
+    allowed_origins: List[str] = Field(
+        default=["http://localhost:3000", "http://localhost:3001"],
+        description="List of allowed CORS origins",
     )
 
     @field_validator("environment")
