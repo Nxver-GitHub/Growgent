@@ -34,6 +34,11 @@ function AppContent(): JSX.Element {
     );
   }, [criticalAlertsData, alertsError]);
 
+  const handleDismissAlert = useCallback((alertId: string) => {
+    console.log(`Dismissing alert: ${alertId}`);
+    // TODO: Implement actual API call to dismiss alert
+  }, []);
+
   const memoizedPage = useMemo(() => {
     switch (currentPage) {
       case "dashboard":
