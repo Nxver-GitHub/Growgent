@@ -49,32 +49,25 @@ export function AppSidebar({
       data-sidebar="main"
     >
       {/* header with logo */}
-      <div className={`h-20 flex items-center border-b border-slate-200 flex-shrink-0 ${
-        collapsed ? "justify-center px-0" : "px-6"
-      }`}>
-        <div className={`w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0 ${
-          collapsed ? "" : "mr-4"
-        }`}>
-          {/* White outline droplet icon - matches logo design */}
-          <svg
-            className="h-4 w-4 text-white"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 3c-1.5 0-3 1.5-3 3.5 0 2.5 3 5.5 3 5.5s3-3 3-5.5c0-2-1.5-3.5-3-3.5z"
-            />
-          </svg>
+      <div className="border-b border-slate-200 p-4 relative">
+      {/* logo pinned to same x-position as sidebar icons */}
+      <div className="absolute left-6 top-1/2 -translate-y-1/2">
+        <div className="w-8 h-8 aspect-square rounded-xl bg-emerald-500 flex items-center justify-center">
+          <Droplet className="h-6 w-6 text-white" fill="white" />
         </div>
-        {!collapsed && (
-          <p className="text-sm font-semibold text-emerald-600 whitespace-nowrap leading-none">Growgent</p>
-        )}
       </div>
+
+      {/* centered title */}
+      {!collapsed && (
+        <div className="flex flex-col items-center justify-center text-center">
+          <p className="text-lg font-semibold text-emerald-700leading-tight">
+            Growgent
+          </p>
+          <p className="text-sm text-slate-500 leading-tight">
+          </p>
+        </div>
+      )}
+    </div>
 
       {/* navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-2">
