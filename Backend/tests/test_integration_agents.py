@@ -58,13 +58,13 @@ class TestWaterEfficiencyAgentIntegration:
         state = await agent.process(state, db_session)
 
         assert state.error is None
-        assert state.step == "completed"
+        assert state.step == "complete"
         assert state.water_metrics is not None
-        assert state.water_metrics.field_id == sample_field.id
-        assert state.water_metrics.water_recommended_liters >= 0
-        assert state.water_metrics.water_typical_liters > 0
-        assert state.water_metrics.water_saved_liters >= 0
-        assert 0 <= state.water_metrics.efficiency_percent <= 100
+        assert state.water_metrics['field_id'] == sample_field.id
+        assert state.water_metrics['water_recommended_liters'] >= 0
+        assert state.water_metrics['water_used_liters'] > 0
+        assert state.water_metrics['water_saved_liters'] >= 0
+        assert 0 <= state.water_metrics['efficiency_percent'] <= 100
 
     @pytest.mark.asyncio
     async def test_water_efficiency_agent_creates_milestone_alert(
@@ -139,7 +139,7 @@ class TestWaterEfficiencyAgentIntegration:
         assert state.error is None
         assert state.water_metrics is not None
         # Should still return metrics with zero recommended water
-        assert state.water_metrics.water_recommended_liters == 0
+        assert state.water_metrics['water_recommended_liters'] == 0
 
 
 @pytest.mark.integration
@@ -159,7 +159,7 @@ class TestPSPSAgentIntegration:
         state = await agent.process(state, db_session)
 
         assert state.error is None
-        assert state.step == "completed"
+        assert state.step == "complete"
         # May or may not have affected fields depending on mock PSPS data
         assert isinstance(state.affected_field_ids, list)
         assert isinstance(state.affected_field_data, list)
@@ -234,7 +234,7 @@ class TestPSPSAgentIntegration:
         state = await agent.monitor_all_fields(db_session, farm_id=sample_field.farm_id)
 
         assert state.error is None
-        assert state.step == "completed"
+        assert state.step == "complete"
         # Should check both fields
         assert len(state.affected_field_ids) >= 0
 

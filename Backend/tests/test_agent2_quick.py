@@ -54,8 +54,8 @@ async def test_water_efficiency_agent_basic(db_session: AsyncSession, sample_fie
     # Verify
     assert state.error is None
     assert state.water_metrics is not None
-    assert state.water_metrics.field_id == sample_field.id
-    print(f"✅ Water Efficiency Agent: Calculated {state.water_metrics.water_saved_liters}L saved")
+    assert state.water_metrics['field_id'] == sample_field.id
+    print(f"✅ Water Efficiency Agent: Calculated {state.water_metrics['water_saved_liters']}L saved")
 
 
 @pytest.mark.asyncio

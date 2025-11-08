@@ -21,6 +21,7 @@ import { useDashboard } from "../lib/hooks/useDashboard";
 import { useCriticalAlerts } from "../lib/hooks/useAlerts";
 import { useRecommendations } from "../lib/hooks/useRecommendations";
 import { formatRelativeTime } from "../lib/utils/formatters";
+import { PSPSAlert } from "./PSPSAlert";
 
 interface DashboardProps {
   /** Callback function for page navigation */
@@ -349,6 +350,9 @@ export function Dashboard({ onNavigate, onDismissAlert }: DashboardProps): JSX.E
           </div>
         )}
       </div>
+
+      {/* PSPS Alert Checker */}
+      <PSPSAlert />
 
       {/* Recent Alerts */}
       {visibleAlerts.length > 0 && (

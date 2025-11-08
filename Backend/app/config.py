@@ -28,7 +28,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = Field(
-        default="postgresql://postgres:postgres@localhost:5433/growgent",
+        default="postgresql+asyncpg://postgres:postgres@localhost:5433/growgent",
         description="PostgreSQL database connection URL (port 5433 for Growgent, 5432 for other instances)",
     )
 

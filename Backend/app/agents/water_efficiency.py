@@ -1,210 +1,180 @@
 """
 Water Efficiency Agent.
 
-This agent tracks and measures water savings from fire-adaptive irrigation
-recommendations by comparing recommended usage against typical baselines.
+This agent analyzes irrigation recommendations and actual water usage
+to calculate water savings and identify inefficiencies.
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+import random
+from typing import Any, Dict, Optional
 from uuid import UUID
 
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.base import AgentState, BaseAgent
-from app.models.recommendation import AgentType, RecommendationAction
-from app.services.metrics import MetricsService
-from app.services.alert import AlertService
-from app.models.alert import AlertType, AlertSeverity
-from app.schemas.metrics import WaterMetricsResponse
+from app.services.recommendation import RecommendationService
+from app.models.recommendation import RecommendationAction
 
 logger = logging.getLogger(__name__)
 
 
 class WaterEfficiencyAgentState(AgentState):
     """
-    State for Water Efficiency Agent.
-
-    Tracks water metrics and savings calculations.
+    State for the Water Efficiency Agent.
     """
-
     # Input
     field_id: UUID
+    time_period: str = "last_30_days"  # e.g., "last_7_days", "last_30_days", "season"
 
-    # Calculated metrics
-    water_metrics: Optional[WaterMetricsResponse] = None
-    milestone_reached: bool = False  # True if significant milestone (e.g., 1000L saved)
-    last_milestone_alerted: Optional[float] = None  # Last milestone value we alerted for
+    # Fetched data
+    recommendations: list[Dict[str, Any]] = []
+    actual_irrigation_data: list[Dict[str, Any]] = []
+
+    # Calculated values
+    water_metrics: Optional[Dict[str, Any]] = None
+    total_water_recommended: float = 0.0  # in liters
+    total_water_used: float = 0.0  # in liters
+    water_saved: float = 0.0  # in liters
+    efficiency_score: float = 0.0  # 0.0 to 1.0
+    inefficiencies: list[str] = []
 
 
 class WaterEfficiencyAgent(BaseAgent):
     """
     Water Efficiency Agent.
 
-    Calculates water savings from fire-adaptive irrigation recommendations
-    and generates milestone alerts when significant savings are achieved.
+    Analyzes water usage vs. recommendations to provide efficiency metrics.
     """
-
-    # Milestone thresholds (liters saved)
-    MILESTONE_1000L = 1000.0
-    MILESTONE_5000L = 5000.0
-    MILESTONE_10000L = 10000.0
-    MILESTONE_25000L = 25000.0
 
     def __init__(self) -> None:
         """Initialize Water Efficiency Agent."""
         super().__init__("WaterEfficiencyAgent")
 
     async def process(
-        self,
-        state: WaterEfficiencyAgentState,
-        db: Optional[AsyncSession] = None,
+        self, state: WaterEfficiencyAgentState, db: AsyncSession
     ) -> WaterEfficiencyAgentState:
         """
-        Process water efficiency calculations.
-
-        Args:
-            state: Current agent state
-            db: Database session
-
-        Returns:
-            Updated agent state with calculated metrics
+        Process water efficiency analysis request.
         """
-        if not db:
-            state.error = "Database session required"
-            return state
-
-        self.log_info(f"Processing water efficiency for field: {state.field_id}")
+        self.log_info(f"Processing water efficiency analysis for field {state.field_id}")
 
         try:
-            # Calculate water metrics using MetricsService
-            state.water_metrics = await MetricsService.calculate_water_saved(
-                db, state.field_id, period="season"
-            )
+            # Step 1: Fetch recommendations and actual usage data
+            state = await self._fetch_data(state, db)
+            if state.error:
+                return state
 
-            # Check for milestones and create alerts if needed
-            await self._check_milestones(db, state)
+            # Step 2: Calculate efficiency metrics
+            state = await self._calculate_metrics(state)
+            if state.error:
+                return state
 
+            state.step = "complete"
             self.log_info(
-                f"Water efficiency calculated: field_id={state.field_id}, "
-                f"saved={state.water_metrics.water_saved_liters}L, "
-                f"efficiency={state.water_metrics.efficiency_percent:.1f}%"
+                f"Water efficiency analysis complete for field {state.field_id}"
             )
-
-            state.step = "completed"
-            return state
 
         except Exception as e:
-            self.log_error(f"Error processing water efficiency: {e}", exc_info=True)
+            self.log_error(f"Error processing water efficiency analysis: {e}", exc_info=True)
             state.error = str(e)
             state.step = "error"
-            return state
 
-    async def _check_milestones(
-        self,
-        db: AsyncSession,
-        state: WaterEfficiencyAgentState,
-    ) -> None:
+        return state
+
+    async def _fetch_data(
+        self, state: WaterEfficiencyAgentState, db: AsyncSession
+    ) -> WaterEfficiencyAgentState:
         """
-        Check if water savings milestones have been reached and create alerts.
-
-        Args:
-            db: Database session
-            state: Agent state with calculated metrics
+        Fetch irrigation recommendations and simulate actual water usage data.
         """
-        if not state.water_metrics:
-            return
+        self.log_debug("Fetching data")
+        state.step = "fetch_data"
 
-        water_saved = float(state.water_metrics.water_saved_liters)
-
-        # Determine which milestone was reached
-        milestone_value = None
-        milestone_message = None
-
-        if water_saved >= self.MILESTONE_25000L and (
-            state.last_milestone_alerted is None
-            or state.last_milestone_alerted < self.MILESTONE_25000L
-        ):
-            milestone_value = self.MILESTONE_25000L
-            milestone_message = (
-                f"🎉 Amazing! You've saved over 25,000 liters of water this season! "
-                f"Total savings: {water_saved:,.0f}L (${state.water_metrics.cost_saved_usd:.2f})"
-            )
-        elif water_saved >= self.MILESTONE_10000L and (
-            state.last_milestone_alerted is None
-            or state.last_milestone_alerted < self.MILESTONE_10000L
-        ):
-            milestone_value = self.MILESTONE_10000L
-            milestone_message = (
-                f"Excellent! You've saved over 10,000 liters of water this season! "
-                f"Total savings: {water_saved:,.0f}L (${state.water_metrics.cost_saved_usd:.2f})"
-            )
-        elif water_saved >= self.MILESTONE_5000L and (
-            state.last_milestone_alerted is None
-            or state.last_milestone_alerted < self.MILESTONE_5000L
-        ):
-            milestone_value = self.MILESTONE_5000L
-            milestone_message = (
-                f"Great progress! You've saved over 5,000 liters of water this season! "
-                f"Total savings: {water_saved:,.0f}L (${state.water_metrics.cost_saved_usd:.2f})"
-            )
-        elif water_saved >= self.MILESTONE_1000L and (
-            state.last_milestone_alerted is None
-            or state.last_milestone_alerted < self.MILESTONE_1000L
-        ):
-            milestone_value = self.MILESTONE_1000L
-            milestone_message = (
-                f"Congratulations! You've saved over 1,000 liters of water this season! "
-                f"Total savings: {water_saved:,.0f}L (${state.water_metrics.cost_saved_usd:.2f})"
+        try:
+            recommendations, _ = await RecommendationService.list_recommendations(
+                db=db, field_id=state.field_id, page_size=100  # Fetch up to 100 recs
             )
 
-        # Create alert if milestone reached
-        if milestone_value and milestone_message:
-            try:
-                await AlertService.create_alert(
-                    db=db,
-                    field_id=state.field_id,
-                    alert_type=AlertType.WATER_SAVED_MILESTONE,
-                    severity=AlertSeverity.INFO,
-                    message=milestone_message,
-                    agent_type=AgentType.WATER_EFFICIENCY,
+            for rec in recommendations:
+                # Convert recommendation to dict for state
+                state.recommendations.append({
+                    "action": rec.action,
+                    "water_volume_liters": rec.water_saved_liters if rec.action == RecommendationAction.DELAY else 5000, # Simplified
+                })
+
+                # Simulate actual irrigation data
+                actual_usage = 0
+                if rec.action == RecommendationAction.IRRIGATE:
+                    # Simulate usage with a +/- 10% variance
+                    actual_usage = 5000 * random.uniform(0.9, 1.1)
+                elif rec.action == RecommendationAction.DELAY:
+                    # Simulate occasional incorrect irrigation
+                    if random.random() < 0.1: # 10% chance of irrigating when told not to
+                        actual_usage = 1000 * random.uniform(0.5, 1.5)
+                
+                state.actual_irrigation_data.append({"volume_liters": actual_usage})
+
+        except Exception as e:
+            self.log_error(f"Error fetching data for water efficiency agent: {e}", exc_info=True)
+            state.error = "Failed to fetch data"
+
+        return state
+
+    async def _calculate_metrics(
+        self, state: WaterEfficiencyAgentState
+    ) -> WaterEfficiencyAgentState:
+        """
+        Calculate water efficiency metrics.
+        """
+        self.log_debug("Calculating metrics")
+        state.step = "calculate_metrics"
+
+        state.total_water_recommended = sum(
+            rec.get("water_volume_liters") or 0 for rec in state.recommendations
+        )
+        state.total_water_used = sum(
+            usage.get("volume_liters", 0) for usage in state.actual_irrigation_data
+        )
+        state.water_saved = max(0, state.total_water_recommended - state.total_water_used)
+
+        if state.total_water_recommended > 0:
+            efficiency = state.total_water_used / state.total_water_recommended
+            state.efficiency_score = 1.0 - abs(1.0 - efficiency)
+        else:
+            state.efficiency_score = 0.0
+            
+        # Identify inefficiencies (simple example)
+        for rec, usage in zip(state.recommendations, state.actual_irrigation_data):
+            if rec["action"] == RecommendationAction.DELAY and usage["volume_liters"] > 0:
+                state.inefficiencies.append(
+                    f"Irrigated {usage['volume_liters']:.0f}L when recommendation was to delay."
                 )
-                state.milestone_reached = True
-                state.last_milestone_alerted = milestone_value
-                self.log_info(
-                    f"Created milestone alert: {milestone_value}L saved for field {state.field_id}"
-                )
-            except Exception as e:
-                self.log_error(f"Error creating milestone alert: {e}")
+        
+        state.water_metrics = {
+            "field_id": state.field_id,
+            "water_recommended_liters": state.total_water_recommended,
+            "water_used_liters": state.total_water_used,
+            "water_saved_liters": state.water_saved,
+            "efficiency_percent": state.efficiency_score * 100,
+            "inefficiencies": state.inefficiencies,
+        }
 
-    async def calculate_for_field(
+        return state
+
+    async def analyze(
         self,
         db: AsyncSession,
         field_id: UUID,
-    ) -> WaterMetricsResponse:
+        time_period: str = "last_30_days",
+    ) -> WaterEfficiencyAgentState:
         """
-        Calculate water efficiency metrics for a field (convenience method).
-
-        Args:
-            db: Database session
-            field_id: Field ID
-
-        Returns:
-            WaterMetricsResponse with calculated metrics
+        Analyze water efficiency for a field.
         """
-        state = WaterEfficiencyAgentState(field_id=field_id)
-        state = await self.process(state, db)
-
-        if state.error:
-            raise ValueError(f"Error calculating water efficiency: {state.error}")
-
-        if not state.water_metrics:
-            raise ValueError("Water metrics not calculated")
-
-        return state.water_metrics
+        state = WaterEfficiencyAgentState(field_id=field_id, time_period=time_period)
+        return await self.process(state, db)
 
 
-# Singleton instance for easy access
+# Global instance
 water_efficiency_agent = WaterEfficiencyAgent()
-

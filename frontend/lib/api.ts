@@ -102,11 +102,18 @@ async function apiFetch<T>(
     return apiResponse.data;
   } catch (error) {
     if (error instanceof Error) {
+      // Suppress console warnings in production for fetch errors
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("API fetch error:", error);
+      }
       // Handle timeout specifically
       if (error.name === "AbortError" || error.message.includes("aborted")) {
         throw new Error("Request timed out. Please check your connection and try again.");
       }
       throw error;
+    }
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("Unknown API error:", error);
     }
     throw new Error("Unknown error occurred");
   }
