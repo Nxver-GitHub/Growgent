@@ -12,8 +12,9 @@ module.exports = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+    "import.meta": "<rootDir>/__mocks__/importMeta.js",
   },
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   collectCoverageFrom: [
     "components/**/*.{ts,tsx}",
     "lib/**/*.{ts,tsx}",

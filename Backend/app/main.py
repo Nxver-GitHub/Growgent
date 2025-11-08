@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import agents, alerts, fields, recommendations, metrics, zones, scheduler as scheduler_api, satellite, users, farms, user_preferences
+from app.api import agents, alerts, fields, recommendations, metrics, water_efficiency, utility_shutoff, zones, scheduler as scheduler_api, satellite, users, farms, user_preferences
 from app.config import settings
 from app.database import init_db, close_db
 from app.services.scheduler import scheduler
@@ -98,6 +98,8 @@ app.include_router(fields.router)
 app.include_router(recommendations.router)
 app.include_router(alerts.router)
 app.include_router(metrics.router)
+app.include_router(water_efficiency.router)
+app.include_router(utility_shutoff.router)
 app.include_router(zones.router)
 app.include_router(scheduler_api.router)
 app.include_router(satellite.router)

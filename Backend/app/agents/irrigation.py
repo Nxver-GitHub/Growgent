@@ -161,12 +161,22 @@ class FireAdaptiveIrrigationAgent(BaseAgent):
 
                 if field:
                     # Extract location from PostGIS geometry
-                    # For MVP, use default if location not available
                     if field.location_geom:
-                        # TODO: Parse PostGIS geometry to get lat/lon
-                        # For now, use defaults
-                        state.field_location = {"latitude": 38.5, "longitude": -122.5}
+                        try:
+                            from shapely import wkb
+                            from shapely.geometry import Point
+
+                            # The geometry is expected to be a WKBElement.
+                            # We load its binary data into a shapely Point object.
+                            point: Point = wkb.loads(bytes(field.location_geom.data))
+                            state.field_location = {"latitude": point.y, "longitude": point.x}
+                            self.log_debug(f"Parsed location for field {field.id}: lat={point.y}, lon={point.x}")
+                        except Exception as e:
+                            self.log_error(f"Could not parse location geometry for field {field.id}: {e}")
+                            # If parsing fails for any reason, fall back to the default.
+                            state.field_location = {"latitude": 38.5, "longitude": -122.5}
                     else:
+                        # Keep the fallback for fields with no location
                         state.field_location = {"latitude": 38.5, "longitude": -122.5}
 
                     # Use crop_type to infer stage (simplified for MVP)

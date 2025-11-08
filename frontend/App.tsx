@@ -34,11 +34,7 @@ function AppContent(): JSX.Element {
     );
   }, [criticalAlertsData, alertsError]);
 
-  const handleDismissAlert = useCallback(() => {
-    // server-driven now, so nothing to do
-  }, []);
-
-  const renderPage = () => {
+  const memoizedPage = useMemo(() => {
     switch (currentPage) {
       case "dashboard":
         return (
@@ -66,7 +62,7 @@ function AppContent(): JSX.Element {
           />
         );
     }
-  };
+  }, [currentPage, handleDismissAlert, setCurrentPage]);
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
@@ -89,8 +85,8 @@ function AppContent(): JSX.Element {
           sidebarOpen={sidebarOpen}
         />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
-          <div className="max-w-7xl mx-auto w-full">{renderPage()}</div>
+        <main className="flex-1 overflow-y-auto p-8 bg-slate-50">
+          <div className="max-w-7xl mx-auto w-full">{memoizedPage}</div>
         </main>
       </div>
 

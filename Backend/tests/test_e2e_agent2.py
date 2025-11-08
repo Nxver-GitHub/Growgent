@@ -71,7 +71,7 @@ class TestWaterEfficiencyE2E:
 
         assert state.error is None
         assert state.water_metrics is not None
-        assert state.water_metrics.water_saved_liters >= 0
+        assert state.water_metrics['water_saved_liters'] >= 0
 
         # Step 4: Verify metrics via API
         response = client.get(
