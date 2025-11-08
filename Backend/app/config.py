@@ -49,6 +49,14 @@ class Settings(BaseSettings):
         default=None,
         description="Google Earth Engine API key for NDVI data (optional)",
     )
+    fire_perimeters_feature_server_url: Optional[str] = Field(
+        default=None,
+        description="ArcGIS FeatureServer URL for active fire perimeters (e.g., USGS, NIFC, CALFIRE)",
+    )
+    psps_feature_server_urls: Optional[str] = Field(
+        default=None,
+        description="Comma-separated ArcGIS FeatureServer URLs for PSPS/outage polygons (e.g., PG&E, SCE, SDG&E)",
+    )
 
     # Salesforce (optional)
     salesforce_client_id: Optional[str] = Field(
