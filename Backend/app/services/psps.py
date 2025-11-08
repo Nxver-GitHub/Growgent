@@ -7,15 +7,17 @@ are affected by active or predicted power shutoffs.
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List # Added List
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from geoalchemy2.functions import ST_X, ST_Y # Added for extracting lat/lon
 
 from app.models.field import Field
-from app.mcp.psps import PSPSMCP
+from app.models.psps_event import PspsStatus # Added
 from app.services.geo import GeoService
+from app.services.psps_event_service import get_active_psps_events # Added
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +25,9 @@ logger = logging.getLogger(__name__)
 class PSPSService:
     """Service for PSPS (Public Safety Power Shutoff) impact assessment."""
 
-    def __init__(self, psps_mcp: Optional[PSPSMCP] = None) -> None:
-        """
-        Initialize PSPS service.
-
-        Args:
-            psps_mcp: Optional PSPS MCP instance (creates new one if not provided)
-        """
-        self.psps_mcp = psps_mcp or PSPSMCP()
+    def __init__(self) -> None: # Removed psps_mcp parameter
+        """Initialize PSPS service."""
+        # self.psps_mcp = psps_mcp or PSPSMCP() # Removed
         self._seen_event_ids: set[str] = set()  # Track seen PSPS events to avoid duplicates
 
     async def check_shutoff_impact(
@@ -86,57 +83,65 @@ class PSPSService:
         logger.debug(f"Field {field_id} is not affected by any shutoffs")
         return False
 
-    async def _fetch_shutoff_areas(self, field: Optional[Field] = None) -> list[dict]:
+    async def _fetch_shutoff_areas(self, db: AsyncSession, field: Optional[Field] = None) -> list[dict]: # Added db parameter
         """
-        Fetch shutoff areas from PSPS MCP server.
+        Fetch shutoff areas from the database (previously from PSPS MCP server).
 
         Args:
+            db: Database session # Added
             field: Optional field to get location from
 
         Returns:
             List of shutoff area dictionaries
         """
-        logger.debug("Fetching shutoff areas from PSPS MCP")
+        logger.debug("Fetching shutoff areas from DB via psps_event_service")
+
+        latitude = None
+        longitude = None
+        if field and field.location_geom:
+            # Extract lat/lon from field.location_geom
+            # Assuming field.location_geom is a PostGIS POINT
+            latitude = await db.scalar(ST_Y(field.location_geom))
+            longitude = await db.scalar(ST_X(field.location_geom))
 
         try:
-            # Extract lat/lon from field location if available
-            # For now, we'll fetch all shutoffs and filter by geometry
-            latitude = None
-            longitude = None
-
-            # TODO: Extract coordinates from field.location_geom if it's a POINT
-            # For MVP, we'll fetch all shutoffs and use GeoService to filter
-
-            # Get both active and predicted shutoffs
-            active_shutoffs = await self.psps_mcp.get_active_shutoffs(latitude, longitude)
-            predicted_shutoffs = await self.psps_mcp.get_predicted_shutoffs(
-                latitude, longitude, hours_ahead=48
+            # Get both active and predicted shutoffs from the database
+            active_events = await get_active_psps_events(
+                db,
+                latitude=latitude,
+                longitude=longitude,
+                status_filter=PspsStatus.ACTIVE,
+            )
+            predicted_events = await get_active_psps_events(
+                db,
+                latitude=latitude,
+                longitude=longitude,
+                status_filter=PspsStatus.PLANNED,
             )
 
             # Combine and format as shutoff areas
-            all_shutoffs = active_shutoffs + predicted_shutoffs
+            all_events = active_events + predicted_events
 
-            # Convert to shutoff area format (with geometry if available)
             shutoff_areas = []
-            for shutoff in all_shutoffs:
-                # For MVP, shutoff areas are represented by counties
-                # In production, these would have actual GeoJSON geometries
+            for event in all_events:
                 area = {
-                    "id": shutoff.get("id", "unknown"),
-                    "utility": shutoff.get("utility", "unknown"),
-                    "status": shutoff.get("status", "UNKNOWN"),
-                    "counties": shutoff.get("counties", []),
-                    "start_time": shutoff.get("start_time") or shutoff.get("predicted_start_time"),
-                    "end_time": shutoff.get("estimated_end_time") or shutoff.get("predicted_end_time"),
-                    "geometry": None,  # Would contain GeoJSON in production
+                    "id": event.id,
+                    "utility": event.utility.value,
+                    "status": event.status.value,
+                    "start_time": event.starts_at.isoformat(),
+                    "end_time": event.ends_at.isoformat() if event.ends_at else None,
+                    "reason": event.properties.get("reason", "No specific reason provided"),
+                    "affected_customers": event.properties.get("affected_customers"),
+                    "counties": event.properties.get("counties"),
+                    "geometry": json.loads(await db.scalar(ST_AsGeoJSON(event.geom))), # Convert geom to GeoJSON
                 }
                 shutoff_areas.append(area)
 
-            logger.debug(f"Fetched {len(shutoff_areas)} shutoff areas from PSPS MCP")
+            logger.debug(f"Fetched {len(shutoff_areas)} shutoff areas from DB")
             return shutoff_areas
 
         except Exception as e:
-            logger.error(f"Error fetching shutoff areas from PSPS MCP: {e}")
+            logger.error(f"Error fetching shutoff areas from DB: {e}")
             return []
 
     async def get_affected_fields(

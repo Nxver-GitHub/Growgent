@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import agents, alerts, fields, recommendations, metrics, water_efficiency, utility_shutoff, zones, scheduler as scheduler_api, satellite, users, farms, user_preferences
+from app.api import agents, alerts, fields, recommendations, metrics, water_efficiency, utility_shutoff, zones, scheduler as scheduler_api, satellite, users, farms, user_preferences, fire_perimeters, psps_events
 from app.config import settings
 from app.database import init_db, close_db
 from app.services.scheduler import scheduler
@@ -106,6 +106,8 @@ app.include_router(satellite.router)
 app.include_router(users.router)
 app.include_router(farms.router)
 app.include_router(user_preferences.router)
+app.include_router(fire_perimeters.router)
+app.include_router(psps_events.router)
 
 
 @app.exception_handler(Exception)

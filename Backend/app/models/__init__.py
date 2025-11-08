@@ -14,6 +14,8 @@ from app.models.chat_message import ChatMessage
 from app.models.user import User, UserRole
 from app.models.farm import Farm
 from app.models.user_preferences import UserPreferences
+from app.models.fire_perimeter import FirePerimeter # Added
+from app.models.psps_event import PspsEvent, PspsUtility, PspsStatus # Added
 
 __all__ = [
     "BaseModel",
@@ -32,4 +34,8 @@ __all__ = [
     "UserRole",
     "Farm",
     "UserPreferences",
+    "FirePerimeter", # Added
+    "PspsEvent", # Added
+    "PspsUtility", # Added
+    "PspsStatus", # Added
 ]
